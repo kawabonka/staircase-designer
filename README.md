@@ -4,7 +4,7 @@
 
 ## 在线使用
 
-<https://kawabonka.github.io/staircase-designer/staircase-designer.html>
+<https://kawabonka.github.io/staircase-designer/staircase-designer-v2.html>
 
 ## 功能
 
@@ -17,7 +17,19 @@
 
 ## 本地使用
 
-直接用浏览器打开 `staircase-designer.html` 即可，所有数据都在本地计算，不上传任何信息。
+直接用浏览器打开 `staircase-designer-v2.html` 即可，所有数据都在本地计算，不上传任何信息。
+
+旧版 `staircase-designer.html` 仍保留，可继续访问。
+
+## 更新日志
+
+### v2.0（2026-08-12）
+
+- 新增“开洞尺寸建议”：直梯给出矩形洞口，L 型转角梯给出 L 形洞口，按 1.85 m 净空高度并预留四周余量计算
+- 优化平面图绘制：视图垂直居中显示
+- 优化平面图尺寸标注：距离楼梯轮廓收紧，减少遮挡
+
+完整更新说明见 [GitHub Release 页面](https://github.com/kawabonka/staircase-designer/releases/tag/v2.0.0)。
 
 ## 发布
 
