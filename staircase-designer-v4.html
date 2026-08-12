@@ -62,6 +62,18 @@ header .pipe{ width:1px; height:22px; background:var(--border) }
 .hbtn{ font-size:12px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-family:var(--font-body); white-space:nowrap }
 .hbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--surface) }
 footer{ grid-column:1/-1; padding:5px 16px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); background:var(--surface); text-align:center; letter-spacing:.3px }
+#report-print{ display:none }
+@media print{
+  body > *:not(#report-print){ display:none !important }
+  #report-print{ display:block !important; padding:18px; font-family:var(--font-body); color:#111 }
+  #report-print h1{ font-size:22px; margin:0 0 4px }
+  #report-print .rp-meta{ font-size:11px; color:#555; margin:0 0 12px }
+  #report-print h2{ font-size:15px; border-bottom:1px solid #bbb; padding-bottom:2px; margin:14px 0 6px }
+  #report-print table{ border-collapse:collapse; width:100%; font-size:12px }
+  #report-print td{ border:1px solid #bbb; padding:3px 8px }
+  #report-print li{ font-size:12px; margin:2px 0 }
+  #report-print img{ width:100% }
+}
 
 /* ── Sidebar ────────────────────────────── */
 aside{
@@ -167,6 +179,8 @@ table.sch tr.last td{ border-bottom:none }
   main{ grid-template-columns:1fr; overflow:visible }
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body data-od-id="app-root">
 
@@ -186,6 +200,7 @@ table.sch tr.last td{ border-bottom:none }
     <button class="hbtn" id="btn-save" title="保存当前配置方案为 JSON 文件">导出方案</button>
     <button class="hbtn" id="btn-draw-svg" title="导出平面/剖面/3D 图为 SVG 矢量图">存图 SVG</button>
     <button class="hbtn" id="btn-draw-jpg" title="导出平面/剖面/3D 图为 JPG 图片">存图 JPG</button>
+    <button class="hbtn" id="btn-pdf" title="导出基本尺寸/结果摘要/规范校验/示意图报告 PDF">导出 PDF</button>
     <input type="file" id="import-file" accept=".json,application/json" hidden>
   </div>
   <div class="head-status" data-od-id="head-status">
@@ -812,13 +827,13 @@ function renderPlanU(d){
   svg = dText(svg, sx(Uw/2), sy(Lb+lp/2)+4, m>0?`平台踏步 ${m} 级`:`休息平台 ${fmt(platEl)}`, 't-lbl2');
 
   /* 尺寸标注（全部在轮廓外） */
-  svg = dV(svg, sy(0), sy(L1), sx(0)-0.18*w, `第一跑 ${fmt(L1)}`, 'dim', 8, 'end');
-  svg = dV(svg, sy(0), sy(L2), sx(Uw)+0.18*w, `第二跑 ${fmt(L2)}`);
-  svg = dV(svg, sy(0), sy(Ulen), sx(Uw)+0.42*w, `总长 ${fmt(Ulen)}`);
-  svg = dH(svg, sx(0), sx(w), sy(-0.2*w), `净宽 ${fmt(w)}`, 'dim', 8);
-  svg = dH(svg, sx(x2), sx(Uw), sy(-0.2*w), `净宽 ${fmt(w)}`, 'dim', 8);
-  if(gap>0) svg = dH(svg, sx(w), sx(x2), sy(-0.2*w), `井 ${fmt(gap)}`, 'dim', 6);
-  svg = dH(svg, sx(0), sx(Uw), sy(-0.38*w), `总宽 ${fmt(Uw)}`);
+  svg = dV(svg, sy(0), sy(L1), sx(0)-0.26*w, `第一跑 ${fmt(L1)}`, 'dim', 8, 'end');
+  svg = dV(svg, sy(0), sy(L2), sx(Uw)+0.26*w, `第二跑 ${fmt(L2)}`);
+  svg = dV(svg, sy(0), sy(Ulen), sx(Uw)+0.60*w, `总长 ${fmt(Ulen)}`);
+  svg = dH(svg, sx(0), sx(w), sy(-0.24*w), `净宽 ${fmt(w)}`, 'dim', 8);
+  svg = dH(svg, sx(x2), sx(Uw), sy(-0.24*w), `净宽 ${fmt(w)}`, 'dim', 8);
+  if(gap>0) svg = dH(svg, sx(w), sx(x2), sy(-0.24*w), `井 ${fmt(gap)}`, 'dim', 6);
+  svg = dH(svg, sx(0), sx(Uw), sy(-0.46*w), `总宽 ${fmt(Uw)}`);
 
   svg += `</svg>`;
   return svg;
@@ -896,14 +911,14 @@ function renderPlan(d){
     svg += `<polygon points="${arrow(sx(L1+w/2), sy(w)-14, 0, 1)}" class="dim-f"/>`;
 
     svg = dText(svg,sx(L1+w/2), sy(w/2)+4, m>0 ? `平台踏步 ${m} 级` : `休息平台 ${fmt(platEl)}`, 't-lbl2');
-    /* 尺寸标注（全部在楼梯轮廓外，距离收紧约一半；第二跑在右侧独立标出） */
-    svg = dH(svg, sx(0), sx(L1), sy(-0.22*w), `第一跑 ${k} 级 · ${fmt(L1)}`);
-    svg = dH(svg, sx(L1), sx(L1+w), sy(-0.22*w), `平台 ${fmt(w)}`);
-    svg = dH(svg, sx(0), sx(L1+w), sy(-0.36*w), `总长 ${fmt(L1+w)}`);
-    svg = dV(svg, sy(w+L2), sy(w), sx(L1+w)+0.075*w, `第二跑 ${k2} 级 · ${fmt(L2)}`);
-    svg = dV(svg, sy(0), sy(w+L2), sx(0)-0.18*w, `总宽 ${fmt(w+L2)}`, 'dim', 8, 'end');
-    svg = dV(svg, sy(w), sy(0), sx(0)-0.09*w, `净宽 ${fmt(w)}`, 'dim', 5, 'end');
-    svg = dH(svg, sx(L1), sx(L1+w), sy(w+L2)+0.15*w, `净宽 ${fmt(w)}`, 'dim', 10);
+    /* 尺寸标注（全部在楼梯轮廓外；距离整体再外移 20% 避免重叠） */
+    svg = dH(svg, sx(0), sx(L1), sy(-0.26*w), `第一跑 ${k} 级 · ${fmt(L1)}`);
+    svg = dH(svg, sx(L1), sx(L1+w), sy(-0.26*w), `平台 ${fmt(w)}`);
+    svg = dH(svg, sx(0), sx(L1+w), sy(-0.43*w), `总长 ${fmt(L1+w)}`);
+    svg = dV(svg, sy(w+L2), sy(w), sx(L1+w)+0.09*w, `第二跑 ${k2} 级 · ${fmt(L2)}`);
+    svg = dV(svg, sy(0), sy(w+L2), sx(0)-0.22*w, `总宽 ${fmt(w+L2)}`, 'dim', 8, 'end');
+    svg = dV(svg, sy(w), sy(0), sx(0)-0.11*w, `净宽 ${fmt(w)}`, 'dim', 5, 'end');
+    svg = dH(svg, sx(L1), sx(L1+w), sy(w+L2)+0.18*w, `净宽 ${fmt(w)}`, 'dim', 10);
   }
   svg += `</svg>`;
   return svg;
@@ -1371,6 +1386,137 @@ $('btn-draw-jpg').addEventListener('click', ()=>{
   img.onerror=()=>{ alert('JPG 导出失败：浏览器无法解析该 SVG'); URL.revokeObjectURL(url); };
   img.src=url;
 });
+
+/* ── 导出 PDF 报告（基本尺寸 + 结果摘要 + 规范校验 + 示意图） ── */
+function svgToPngDataUrl(svgString, cb, type){
+  const blob=new Blob([svgString], {type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width; canvas.height=img.height;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    cb(canvas.toDataURL(type||'image/png'));
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); cb(null); };
+  img.src=url;
+}
+function getReportSections(){
+  const d=compute(S);
+  const typeName=S.type==='U'?'U 型':(S.type==='L'?'L 型':'一字型');
+  const params=[
+    ['楼梯类型', typeName],
+    ['一层净高', fmt(S.H_clear)+' '+U()],
+    ['楼板厚度', fmt(S.t)+' '+U()],
+    ['踏步抬高（目标）', fmt(S.h)+' '+U()],
+    ['踏面宽度', fmt(S.b)+' '+U()],
+    ['梯段净宽', fmt(S.w)+' '+U()],
+    ['行人身高', fmt(S.P)+' '+U()],
+    ['第一跑级数', S.k+' 级'],
+    ['平台踏步', S.platSteps+' 级']
+  ];
+  if(S.type==='U') params.push(['梯井宽', fmt(S.gap)+' '+U()]);
+  const summary=[
+    ['层高', fmt(d.H)+' '+U()],
+    ['总级数', d.N+' 级'],
+    ['实际踏步高', fmt(d.hh)+' '+U()],
+    ['踏步 宽×高', fmt(d.b)+' × '+fmt(d.hh)],
+    [S.type==='straight'?'投影长':'第一跑+平台+第二跑', S.type==='straight' ? (fmt(d.L)+' '+U()) : (d.k+' + '+d.m+' + '+d.k2+' 级')],
+    ['开洞尺寸建议', d.openRec.shape==='L' ? ('L 形 '+fmt(d.openRec.l)+' × '+fmt(d.openRec.w)) : (fmt(d.openRec.l)+' × '+fmt(d.openRec.w))],
+    ['需求净空', fmt(d.R)+' '+U()]
+  ];
+  const checks=buildChecks(d).map(c=>c.t+(c.d?'（'+c.d+'）':''));
+  return {params, summary, checks};
+}
+$('btn-pdf').addEventListener('click', ()=>{
+  if(window.jspdf && window.jspdf.jsPDF){ exportPDF(); }
+  else { alert('PDF 库未加载，将使用浏览器打印导出'); printReport(); }
+});
+/* 生成 PDF 报告页 HTML（第 1 页：尺寸/摘要/校验；第 2 页：示意图 JPG） */
+/* 报告页放在独立 iframe（纯色 CSS，规避主页面 oklch 导致 html2canvas 解析失败） */
+function reportFrameHTML(){
+  const {params, summary, checks}=getReportSections();
+  const typeName=S.type==='U'?'U 型':(S.type==='L'?'L 型':'一字型');
+  const meta=new Date().toLocaleDateString('zh-CN')+' · 单位 '+U()+' · '+typeName;
+  const p1=`<div class="rp-title">楼梯设计报告</div>
+    <div class="rp-sub">${meta}</div>
+    <div class="rp-section"><h3>一、基本尺寸</h3><table>${params.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table></div>
+    <div class="rp-section"><h3>二、结果摘要</h3><table>${summary.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table></div>
+    <div class="rp-section"><h3>三、规范校验</h3><ul>${checks.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+    <div class="rp-footer">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</div>`;
+  const p2=`<div class="rp-title">楼梯设计报告 · 示意图</div>
+    <div class="rp-sub">${meta}</div>
+    <img class="drawing" id="pdf-drawing" alt="示意图">
+    <div class="rp-footer">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+    body{background:#fff}
+    .page{width:794px;min-height:1123px;background:#fff;padding:48px;color:#111;overflow:hidden}
+    .rp-title{font-size:30px;font-weight:bold;text-align:center;margin-bottom:4px;letter-spacing:1px}
+    .rp-sub{font-size:13px;color:#666;text-align:center;margin-bottom:22px}
+    .rp-section h3{font-size:19px;margin:18px 0 8px;border-bottom:2px solid #333;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    td{border:1px solid #ccc;padding:6px 10px}
+    td:first-child{width:34%;background:#f5f5f5;font-weight:600}
+    li{font-size:13px;margin:4px 0}
+    .rp-footer{margin-top:26px;font-size:12px;color:#999;text-align:center;border-top:1px solid #ddd;padding-top:8px}
+    .drawing{width:100%;margin-top:14px}
+  </style></head><body>
+    <div class="page" id="pdf-page1">${p1}</div>
+    <div class="page" id="pdf-page2">${p2}</div>
+  </body></html>`;
+}
+function ensurePdfFrame(){
+  let f=document.getElementById('pdf-frame');
+  if(!f){
+    f=document.createElement('iframe');
+    f.id='pdf-frame';
+    f.style.cssText='position:fixed;left:-10000px;top:0;width:820px;height:1200px;border:0;z-index:-1;';
+    document.body.appendChild(f);
+  }
+  return f;
+}
+function exportPDF(){
+  if(!window.jspdf || !window.jspdf.jsPDF || !window.html2canvas){ alert('PDF / 截图库未加载，改用浏览器打印导出'); printReport(); return; }
+  const {jsPDF}=window.jspdf;
+  const f=ensurePdfFrame();
+  const fdoc=f.contentDocument;
+  fdoc.open(); fdoc.write(reportFrameHTML()); fdoc.close();
+  svgToPngDataUrl(buildDrawingSVG(), (jpg)=>{
+    if(!jpg){ alert('示意图生成失败，改用打印导出'); printReport(); return; }
+    const img=fdoc.getElementById('pdf-drawing');
+    img.onload=()=>{
+      Promise.all([
+        html2canvas(fdoc.getElementById('pdf-page1'), {scale:2, backgroundColor:'#ffffff', logging:false, useCORS:true}),
+        html2canvas(fdoc.getElementById('pdf-page2'), {scale:2, backgroundColor:'#ffffff', logging:false, useCORS:true})
+      ]).then(([c1,c2])=>{
+        const doc=new jsPDF({unit:'mm', format:'a4'});
+        doc.addImage(c1.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+        doc.addPage();
+        doc.addImage(c2.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+        doc.save('楼梯设计报告.pdf');
+      }).catch(()=>{ alert('报告截图失败，已改用浏览器打印导出'); printReport(); });
+    };
+    img.src=jpg;
+  });
+}
+function printReport(){
+  const {params, summary, checks}=getReportSections();
+  const typeName=S.type==='U'?'U 型':(S.type==='L'?'L 型':'一字型');
+  let rep=document.getElementById('report-print');
+  if(!rep){ rep=document.createElement('div'); rep.id='report-print'; document.body.appendChild(rep); }
+  rep.innerHTML=`<h1>楼梯设计报告</h1>
+    <p class="rp-meta">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^ · ${new Date().toLocaleDateString('zh-CN')} · 单位 ${U()}</p>
+    <h2>一、基本尺寸</h2><table>${params.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+    <h2>二、结果摘要</h2><table>${summary.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+    <h2>三、规范校验</h2><ul>${checks.map(t=>`<li>${t}</li>`).join('')}</ul>
+    <h2>四、示意图</h2><img id="report-img" alt="示意图">`;
+  svgToPngDataUrl(buildDrawingSVG(), (dataUrl)=>{ const im=document.getElementById('report-img'); if(im&&dataUrl) im.src=dataUrl; });
+  window.print();
+}
 
 /* init value labels + first render */
 document.querySelectorAll('aside input[data-k]').forEach(inp=>{
