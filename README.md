@@ -10,8 +10,9 @@
 
 国内网络访问加速地址（始终同步到 main 分支最新版）：
 
-- jsDelivr 官方 CDN 镜像（推荐）：<https://cdn.jsdelivr.net/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
-- GitHub 加速代理（备用）：<https://ghproxy.net/https://raw.githubusercontent.com/kawabonka/staircase-designer/main/staircase-designer-v5.html>
+- jsDelivr 国内镜像（推荐）：<https://cdn.osyb.cn/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
+- jsDelivr 官方备用域名：<https://fastly.jsdelivr.net/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
+- GitHub 加速代理（备用）：<https://gh-proxy.com/https://raw.githubusercontent.com/kawabonka/staircase-designer/main/staircase-designer-v5.html>
 
 ## 功能
 
