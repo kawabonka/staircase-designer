@@ -1,0 +1,1219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>楼梯设计器 · 自建房/住宅</title>
+<style>
+:root{
+  --bg:      oklch(98% 0.005 250);
+  --surface: oklch(100% 0 0);
+  --fg:      oklch(22% 0.02 240);
+  --muted:   oklch(50% 0.018 240);
+  --border:  oklch(90% 0.008 240);
+  --accent:  oklch(58% 0.16 145);
+  --accent-soft: oklch(96% 0.05 145);
+  --ok:   oklch(52% 0.16 150);
+  --ok-soft:   oklch(95% 0.05 150);
+  --warn: oklch(65% 0.15 75);
+  --warn-soft: oklch(95% 0.05 85);
+  --bad:  oklch(55% 0.2 25);
+  --bad-soft:  oklch(95% 0.05 25);
+  --font-display: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --shadow: 0 1px 2px oklch(20% 0.02 240 / .05), 0 8px 24px oklch(20% 0.02 240 / .06);
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:var(--font-body); font-size:14px; line-height:1.5;
+  display:grid; grid-template-columns:300px 1fr;
+  grid-template-rows:auto 1fr;
+  height:100vh; height:100dvh;
+  overflow:hidden;
+}
+
+/* ── Header ─────────────────────────────── */
+header{
+  grid-column:1/-1;
+  padding:14px 22px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:16px;
+}
+header h1{ font-size:17px; font-weight:700; letter-spacing:.2px }
+header .sub{ color:var(--muted); font-size:12.5px }
+header .pipe{ width:1px; height:22px; background:var(--border) }
+.head-status{ margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12.5px }
+.dot{ width:8px; height:8px; border-radius:50%; background:var(--muted) }
+.dot.ok{ background:var(--ok) } .dot.warn{ background:var(--warn) } .dot.bad{ background:var(--bad) }
+.unit-badge{
+  font-family:var(--font-mono); font-size:11px; color:var(--muted);
+  border:1px solid var(--border); border-radius:6px; padding:2px 7px; background:var(--bg);
+  cursor:pointer; line-height:1.5;
+}
+.unit-badge:hover{ border-color:var(--accent); color:var(--accent) }
+.headnav{ display:flex; gap:2px }
+.headnav a{ font-size:12.5px; color:var(--muted); text-decoration:none; padding:4px 9px; border-radius:6px; white-space:nowrap }
+.headnav a:hover{ color:var(--accent); background:var(--accent-soft) }
+.head-exports{ display:flex; gap:6px }
+.hbtn{ font-size:12px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-family:var(--font-body); white-space:nowrap }
+.hbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--surface) }
+
+/* ── Sidebar ────────────────────────────── */
+aside{
+  border-right:1px solid var(--border);
+  background:var(--surface);
+  overflow-y:auto; padding:16px 16px 28px;
+  display:flex; flex-direction:column; gap:14px;
+}
+.sect{ background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px 14px }
+.sect h2{ font-size:11.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between }
+.sect h2 .hint{ text-transform:none; font-weight:400; font-size:11px }
+
+/* type segmented */
+.seg{ display:grid; grid-template-columns:1fr 1fr; gap:4px; background:var(--border); border-radius:9px; padding:4px }
+.seg4{ grid-template-columns:repeat(4,1fr) }
+.seg4 label{ padding:6px 0; font-size:12px }
+.seg label{
+  text-align:center; padding:7px 0; border-radius:6px; cursor:pointer; font-size:13px; color:var(--muted);
+  transition:background .12s, color .12s;
+}
+.seg input{ position:absolute; opacity:0; pointer-events:none }
+.seg label:has(input:checked){ background:var(--surface); color:var(--fg); font-weight:600; box-shadow:0 1px 2px rgb(0 0 0/.08) }
+
+/* controls */
+.ctl{ display:block; margin-bottom:10px }
+.ctl:last-child{ margin-bottom:2px }
+.ctl-lbl{ display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; margin-bottom:5px }
+.ctl-lbl .k{ font-family:var(--font-mono); font-size:11px; color:var(--muted) }
+.ctl-val{ font-family:var(--font-mono); font-size:12.5px; color:var(--fg); background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:1px 7px }
+input[type=range]{ width:100%; accent-color:var(--accent); height:20px; cursor:pointer }
+.ctl .note{ font-size:11px; color:var(--muted); margin-top:2px }
+
+/* summary */
+.sum-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px }
+.sum{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 9px }
+.sum .lbl{ font-size:10.5px; color:var(--muted); letter-spacing:.3px }
+.sum .val{ font-family:var(--font-mono); font-size:15px; font-weight:600; margin-top:1px }
+.sum .val small{ font-size:11px; color:var(--muted); font-weight:400 }
+.sum.wide{ grid-column:1/-1 }
+.sum.big .val{ font-size:17px }
+
+/* checks */
+.chk{ display:flex; gap:8px; align-items:flex-start; font-size:12.5px; padding:6px 8px; border-radius:7px; margin-bottom:4px; background:var(--surface); border:1px solid var(--border) }
+.chk .mark{ flex:none; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; margin-top:1px; font-weight:700 }
+.chk .txt{ color:var(--fg) } .chk .txt .d{ color:var(--muted); font-size:11px }
+.chk.ok{ border-color:oklch(85% 0.05 150) } .chk.ok .mark{ background:var(--ok-soft); color:var(--ok) }
+.chk.warn{ border-color:oklch(85% 0.06 85) } .chk.warn .mark{ background:var(--warn-soft); color:var(--warn) }
+.chk.bad{ border-color:oklch(85% 0.06 25) } .chk.bad .mark{ background:var(--bad-soft); color:var(--bad) }
+
+/* ── Main ───────────────────────────────── */
+main{
+  overflow-y:auto; padding:16px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:14px;
+  align-content:start;
+}
+.panel{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.panel-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 14px; border-bottom:1px solid var(--border);
+  font-size:12px; font-weight:700; letter-spacing:.4px;
+}
+.panel-head .tag{ font-weight:400; color:var(--muted); font-size:11.5px; letter-spacing:0 }
+.panel-body{ padding:10px; position:relative }
+/* 画图框：padding-bottom 占位法，任何浏览器都稳定撑出高度（高 = 宽 × 比例） */
+.draw{ position:relative; width:100%; height:0; padding-bottom:71%; background:var(--bg); border-radius:8px; overflow:hidden; cursor:grab; touch-action:none }
+.draw--plan{ padding-bottom:66% }
+.draw--iso{ padding-bottom:72% }
+.draw svg{ position:absolute; top:0; left:0; width:100%; height:100% }
+.draw.grabbing{ cursor:grabbing }
+.draw-hint{ position:absolute; right:12px; bottom:10px; z-index:2; font-size:10.5px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:2px 8px; pointer-events:none; opacity:.9; box-shadow:0 1px 3px rgb(0 0 0/.06) }
+.zbar{ display:inline-flex; gap:3px }
+.zbtn{ width:24px; height:22px; border:1px solid var(--border); background:var(--surface); color:var(--muted); border-radius:5px; font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color .12s,color .12s,background .12s }
+.zbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft) }
+.zbtn.fit{ width:auto; padding:0 8px; font-size:11px }
+
+/* schedule table */
+table.sch{ width:100%; border-collapse:collapse; font-size:12px }
+table.sch th{
+  text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted);
+  border-bottom:1px solid var(--border); padding:5px 8px; font-weight:600;
+}
+table.sch td{ padding:4.5px 8px; border-bottom:1px solid var(--border); font-family:var(--font-mono); font-size:12px }
+table.sch td.c{ font-family:var(--font-body) }
+table.sch tr.gr{ background:var(--accent-soft) }
+table.sch tr.gr td{ font-weight:600 }
+table.sch tr.last td{ border-bottom:none }
+.sch-wrap{ max-height:340px; overflow-y:auto }
+
+/* responsive */
+@media (max-width:1080px){
+  body{ height:auto; overflow:visible; grid-template-columns:1fr; grid-template-rows:none }
+  aside{ border-right:none; border-bottom:1px solid var(--border); overflow:visible }
+  main{ grid-template-columns:1fr; overflow:visible }
+}
+</style>
+</head>
+<body data-od-id="app-root">
+
+<header data-od-id="app-header">
+  <h1>楼梯设计器</h1>
+  <span class="sub">自建房 · 别墅 · 住宅规范（GB 50352）</span>
+  <span class="pipe"></span>
+  <button type="button" class="unit-badge" id="unit-badge" title="点击切换 mm / 英寸">单位 mm</button>
+  <nav class="headnav" data-od-id="head-nav">
+    <a href="#" data-nav="sect-dims">基本尺寸</a>
+    <a href="#" data-nav="sect-summary">结果摘要</a>
+    <a href="#" data-nav="sect-checks">规范校验</a>
+  </nav>
+  <span class="pipe"></span>
+  <div class="head-exports">
+    <button class="hbtn" id="btn-import" title="导入已保存的方案 JSON">导入</button>
+    <button class="hbtn" id="btn-save" title="保存当前配置方案为 JSON 文件">导出方案</button>
+    <button class="hbtn" id="btn-draw-svg" title="导出平面/剖面/3D 图为 SVG 矢量图">存图 SVG</button>
+    <button class="hbtn" id="btn-draw-jpg" title="导出平面/剖面/3D 图为 JPG 图片">存图 JPG</button>
+    <input type="file" id="import-file" accept=".json,application/json" hidden>
+  </div>
+  <div class="head-status" data-od-id="head-status">
+    <span class="dot" id="head-dot"></span>
+    <span id="head-txt">—</span>
+  </div>
+</header>
+
+<aside data-od-id="params-panel">
+  <section class="sect">
+    <h2>楼梯类型 <span class="hint">Type</span></h2>
+    <div class="seg">
+      <label><input type="radio" name="type" value="straight" checked><span>一字型</span></label>
+      <label><input type="radio" name="type" value="L"><span>L 型转角</span></label>
+    </div>
+  </section>
+
+  <section class="sect" id="sect-dims">
+    <h2>基本尺寸 <span class="hint">Inputs</span></h2>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>一层净高 <em class="k">H_clear</em></span><span class="ctl-val" id="val-H_clear"></span></span>
+      <input type="range" data-k="H_clear" min="1900" max="4000" step="10" value="2400">
+    </label>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>楼板厚度 <em class="k">t</em></span><span class="ctl-val" id="val-t"></span></span>
+      <input type="range" data-k="t" min="80" max="250" step="10" value="120">
+    </label>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>踏步抬高（目标值）<em class="k">h</em></span><span class="ctl-val" id="val-h"></span></span>
+      <input type="range" data-k="h" min="120" max="220" step="5" value="167">
+      <div class="note">输入目标值，级数取整后自动换算实际踏步高</div>
+    </label>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>踏面宽度 <em class="k">b</em></span><span class="ctl-val" id="val-b"></span></span>
+      <input type="range" data-k="b" min="220" max="350" step="5" value="270">
+    </label>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>梯段净宽 <em class="k">w</em></span><span class="ctl-val" id="val-w"></span></span>
+      <input type="range" data-k="w" min="600" max="1600" step="10" value="1000">
+    </label>
+  </section>
+
+  <section class="sect" id="l-ctrl" style="display:none">
+    <h2>L 型转角 <span class="hint">自定义</span></h2>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>第一跑级数 <em class="k">k</em></span><span class="ctl-val" id="val-k"></span></span>
+      <input type="range" data-k="k" min="2" max="10" step="1" value="9">
+    </label>
+    <div class="ctl">
+      <span class="ctl-lbl"><span>转角平台踏步数</span></span>
+      <div class="seg seg4">
+        <label><input type="radio" name="platSteps" value="0" checked><span>0 平</span></label>
+        <label><input type="radio" name="platSteps" value="1"><span>1 级</span></label>
+        <label><input type="radio" name="platSteps" value="2"><span>2 级</span></label>
+        <label><input type="radio" name="platSteps" value="3"><span>3 级</span></label>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="ctl-lbl"><span>平台形状</span></span>
+      <div class="seg">
+        <label><input type="radio" name="platShape" value="rect" checked><span>矩形</span></label>
+        <label><input type="radio" name="platShape" value="tri"><span>三角形</span></label>
+      </div>
+    </div>
+    <div class="note" id="k-note"></div>
+  </section>
+
+  <section class="sect" id="sect-headroom">
+    <h2>净空 · 撞头提示 <span class="hint">Headroom</span></h2>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>行人身高 <em class="k">P</em></span><span class="ctl-val" id="val-P"></span></span>
+      <input type="range" data-k="P" min="1500" max="2200" step="10" value="1850">
+    </label>
+    <label class="ctl">
+      <span class="ctl-lbl"><span>楼板悬挑 <em class="k">ov</em>（洞口边缘后缩）</span><span class="ctl-val" id="val-ov"></span></span>
+      <input type="range" data-k="ov" min="0" max="4000" step="10" value="0">
+      <div class="note" id="ov-note"></div>
+    </label>
+    <div class="sum-grid">
+      <div class="sum"><div class="lbl">需求净空 R</div><div class="val" id="sum-r">—</div></div>
+      <div class="sum"><div class="lbl">洞口长度（当前）</div><div class="val" id="sum-open">—</div></div>
+    </div>
+  </section>
+
+  <section class="sect" id="sect-summary" data-od-id="summary-card">
+    <h2>结果摘要</h2>
+    <div class="sum-grid">
+      <div class="sum"><div class="lbl">层高 H = 净高+板厚</div><div class="val" id="sum-h">—</div></div>
+      <div class="sum"><div class="lbl">总级数 N</div><div class="val" id="sum-n">—</div></div>
+      <div class="sum"><div class="lbl">实际踏步高 h′</div><div class="val" id="sum-hh">—</div></div>
+      <div class="sum"><div class="lbl">踏步 宽×高</div><div class="val" id="sum-bh">—</div></div>
+      <div class="sum wide"><div class="lbl">一字型投影长 L</div><div class="val" id="sum-l">—</div></div>
+      <div class="sum wide big" id="sum-l-wrap" style="display:none">
+        <div class="lbl">第一跑 + 平台 + 第二跑</div><div class="val" id="sum-lr">—</div>
+      </div>
+      <div class="sum wide" id="sum-open-rec-wrap">
+        <div class="lbl">开洞尺寸建议</div><div class="val" id="sum-open-rec">—</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect" id="sect-checks" data-od-id="checks-panel">
+    <h2>规范校验 <span class="hint">住宅 GB 50352</span></h2>
+    <div id="checks"></div>
+  </section>
+</aside>
+
+<main data-od-id="views">
+  <section class="panel" data-od-id="view-plan">
+    <div class="panel-head"><span>平面图 · 顶视 <span class="tag" id="plan-tag">一字型</span></span>
+      <span class="zbar" data-zview="plan-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+    </div>
+    <div class="panel-body"><div class="draw draw--plan" id="plan-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
+  </section>
+  <section class="panel" data-od-id="view-section">
+    <div class="panel-head"><span>剖面图 · 净空校验 <span class="tag">含 1.85m 人体比例</span></span>
+      <span class="zbar" data-zview="section-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+    </div>
+    <div class="panel-body"><div class="draw" id="section-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
+  </section>
+  <section class="panel" data-od-id="view-iso">
+    <div class="panel-head"><span>3D 轴测示意 <span class="tag">示意</span></span>
+      <span class="zbar" data-zview="iso-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+    </div>
+    <div class="panel-body"><div class="draw draw--iso" id="iso-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
+  </section>
+  <section class="panel" data-od-id="view-schedule">
+    <div class="panel-head">踏步明细表 <span class="tag" id="sch-tag">—</span></div>
+    <div class="panel-body"><div class="sch-wrap" id="schedule"></div></div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const IN_MM = 25.4;
+const fmt = n => {
+  const v = S.unit==='in' ? n/IN_MM : n;
+  return (S.unit==='in' ? Math.round(v*10)/10 : Math.round(v)).toLocaleString('zh-CN');
+};
+const U = () => S.unit==='in' ? 'in' : 'mm';   // 当前单位符号
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const MONO='ui-monospace,Menlo,monospace';
+
+/* ── state ── */
+const S = {
+  type:'straight', H_clear:2400, t:120, h:167, b:270, w:1000, k:9, P:1850, ov:0,
+  platSteps:0, platShape:'rect', unit:'mm'
+};
+let lastType = null;
+
+/* ── core computation ── */
+function compute(s){
+  const H  = s.H_clear + s.t;                       // 层高
+  let N = Math.max(3, Math.round(H / s.h));         // 总级数（踢面数）
+  const hh = H / N;                                  // 实际踏步高
+  const b = s.b, w = s.w;
+  const L = (N-1) * b;                               // 一字型投影长
+  let k = clamp(Math.round(s.k), 2, N-2);            // 第一跑级数
+  let m = clamp(Math.round(s.platSteps||0), 0, 3);   // 转角平台踏步数 0/1/2/3
+  m = Math.min(m, Math.max(0, N - k - 1));           // 保证第二跑至少 1 级
+  if(k + m > N - 1) k = Math.max(2, N - m - 1);      // 兜底：第二跑 ≥ 1
+  const k2 = N - k - m;                              // 第二跑级数
+  const L1 = (k-1) * b;                              // 第一跑投影长
+  const L2 = (k2-1) * b;                             // 第二跑投影长
+  const platEl = k * hh;                             // 休息平台起步标高
+  const platTop = (k + m) * hh;                      // 平台顶标高（第二跑起步）
+  const R = Math.max(2200, s.P + 350);               // 需求净空
+  const platClear = s.H_clear - platTop;             // 平台处净空（若被楼板覆盖）
+  const ovMax1 = Math.max(0, (s.H_clear - R) * b / hh);            // 第一跑安全悬挑上限
+  const ovMax2 = Math.max(0, (s.H_clear - R - platTop) * b / hh);  // 第二跑安全悬挑上限
+  const ov1 = clamp(s.ov, 0, L1);
+  const ov2 = clamp(s.ov, 0, L2);
+  const elevAt = x => (x>=L) ? H - hh : (Math.floor(x / b) + 1) * hh; // x处行走面标高
+  const edge1 = ov1 > 0 ? s.H_clear - elevAt(ov1) : null;  // 开敞则为null
+  const edge2 = ov2 > 0 ? s.H_clear - platTop - elevAt(ov2) : null;
+  const openLen = L - ov1;                           // 洞口长度（沿梯段）
+
+  /* 第一跑逐级净高检测：每级距楼板底净空 = 净高 − 已爬升高度 */
+  const run1N = (s.type==='L') ? k : Math.max(1, N-1);
+  const run1Steps = [];
+  let run1Safe = 0, run1Bad = 0, run1FirstBad = 0;
+  for(let i=1;i<=run1N;i++){
+    const hr = s.H_clear - i*hh;         // 该级若被楼板覆盖时的净空
+    const safe = hr >= R;                // 是否够 1.85m 人通行
+    const under = (i-1)*b < ov1;         // 该级当前是否在悬挑楼板下方
+    const bad = under && !safe;
+    run1Steps.push({i, hr, safe, under, bad});
+    if(safe) run1Safe = i;
+    if(bad){ run1Bad++; if(!run1FirstBad) run1FirstBad = i; }
+  }
+  const run1NeedOpen = run1Safe < run1N ? run1Safe + 1 : 0;  // 第几级起需洞口覆盖
+
+  /* 建议洞口尺寸（保证 1.85m 人净空 + 四周余量） */
+  const openMargin = 200;
+  let openRec;
+  if(s.type==='straight'){
+    const openL = Math.max(1200, Math.round(L - run1Safe*b + 300));  // 净高安全线 → 梯段顶端 + 上端余量
+    openRec = { shape:'rect', l: openL, w: Math.round(w + openMargin) };
+  } else {
+    openRec = { shape:'L', l: Math.round(L1 + w + openMargin), w: Math.round(w + L2 + openMargin) };
+  }
+
+  return { H, N, hh, b, w, L, k, m, k2, L1, L2, platEl, platTop, platShape:s.platShape||'rect',
+           R, P:s.P, h:s.h, platClear, ovMax1, ovMax2, ov1, ov2, elevAt,
+           edge1, edge2, openLen, H_clear:s.H_clear, t:s.t, type:s.type,
+           run1N, run1Steps, run1Safe, run1Bad, run1FirstBad, run1NeedOpen,
+           openRec };
+}
+
+/* ── checks ── */
+function buildChecks(d){
+  const c=[];
+  const conf = 2*d.hh + d.b;
+  c.push({ok:true, mark:'✓', t:`总级数 ${d.N} 级（整数取整）`, d:`层高 ${fmt(d.H)} / 踏步高目标 ${fmt(d.h)}`});
+  c.push({ok: d.hh<=175, mark:'', t:`实际踏步高 ${fmt(d.hh)} ${U()}`, d:`住宅限值 ≤ ${fmt(175)} ${U()}`,
+          detail:`2h′+b = ${fmt(conf)} ${U()}（宜 ${fmt(600)}~${fmt(630)}）`});
+  c.push({ok:d.b>=260, mark:'', t:`踏面宽 ${fmt(d.b)} ${U()}`, d:`住宅限值 ≥ ${fmt(260)} ${U()}`});
+  c.push({ok: conf>=600&&conf<=630, warn: conf>=560&&conf<=660, mark:'', t:`舒适公式 2h′+b = ${fmt(conf)} ${U()}`, d:`宜 ${fmt(600)} ~ ${fmt(630)} ${U()}`});
+  c.push({ok:d.H_clear>=d.R, mark:'', t:`净高 ${fmt(d.H_clear)} ${U()} ≥ ${fmt(d.R)} ${U()}`, d:`需求净空 = max(${fmt(2200)}, ${fmt(d.P)}+${fmt(350)})`});
+  c.push({
+    ok:d.run1Bad===0, warn:true, mark:'',
+    t: d.run1Bad===0 ? `第一跑净高充足（可被楼板覆盖至第 ${d.run1Safe} 级）` : `第一跑第 ${d.run1FirstBad} 级会碰头`,
+    d: d.run1Bad===0
+      ? `第 ${d.run1Safe+1} 级起需洞口覆盖；当前悬挑 ${fmt(d.ov1)} ${U()}`
+      : `该级净高 ${fmt(d.run1Steps[d.run1FirstBad-1].hr)} ${U()} < ${fmt(d.R)}，需增大洞口（减小悬挑）`
+  });
+  if(d.type==='L'){
+    c.push({ok:true, mark:'✓', t:`休息平台位于洞口覆盖内`, d:`平台标高 ${fmt(d.platEl)}~${fmt(d.platTop)}（踏步 ${d.m} 级），距楼板底 ${fmt(d.platClear)}；须保持洞口覆盖平台`});
+    c.push({ok:d.k2>=2, warn:true, mark:'', t:`第二跑级数 ${d.k2} 级`, d:'建议 ≥ 2 级，可调小第一跑或平台踏步数'});
+  }
+  return c;
+}
+
+function chip(d, item){
+  let cls='ok', mark=item.mark||'✓', txt=item.t;
+  if(item.ok===false){ cls = item.warn ? 'warn' : 'bad'; mark = item.warn ? '!' : '✕'; }
+  return `<div class="chk ${cls}"><span class="mark">${mark}</span><span class="txt">${txt}<span class="d"> · ${item.d||''} ${item.detail? '<br>'+item.detail:''}</span></span></div>`;
+}
+
+/* ── SVG helpers ── */
+function fit(world, vw, vh, pad=46){
+  const [x0,y0,x1,y1]=world;
+  const s=Math.min((vw-2*pad)/(x1-x0),(vh-2*pad)/(y1-y0));
+  const ox=(vw-(x1-x0)*s)/2 - x0*s;
+  const oy=vh/2 + (y0+y1)*s/2;   // 垂直居中
+  return {s, ox, oy, sx:x=>ox+x*s, sy:y=>oy-y*s};
+}
+function arrow(x,y,dx,dy){ // small filled triangle at (x,y) pointing (dx,dy)
+  const a=Math.atan2(dy,dx), L=5;
+  return `${x},${y} ${x+L*Math.cos(a+2.6)},${y+L*Math.sin(a+2.6)} ${x+L*Math.cos(a-2.6)},${y+L*Math.sin(a-2.6)}`;
+}
+/* dimension drawing with explicit coords (already mapped) */
+function dH(svg, x1, x2, y, label, cls='dim', off=8, anchor='middle'){
+  const yA=y-off, yB=y+off;
+  svg += `<path d="M${x1},${yA} V${yB} M${x2},${yA} V${yB} M${x1},${y} H${x2}" class="dim" fill="none"/>`;
+  svg += `<polygon points="${arrow(x1,y,-1,0)}" class="dim-f"/>`;
+  svg += `<polygon points="${arrow(x2,y,1,0)}" class="dim-f"/>`;
+  svg += `<text x="${(x1+x2)/2}" y="${y-9}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
+  return svg;
+}
+function dV(svg, y1, y2, x, label, cls='dim', off=8, anchor='start'){
+  const xA=x-off, xB=x+off;
+  svg += `<path d="M${xA},${y1} H${xB} M${xA},${y2} H${xB} M${x},${y1} V${y2}" class="dim" fill="none"/>`;
+  svg += `<polygon points="${arrow(x,y1,0,-1)}" class="dim-f"/>`;
+  svg += `<polygon points="${arrow(x,y2,0,1)}" class="dim-f"/>`;
+  svg += `<text x="${anchor==='end'?x-9:x+9}" y="${(y1+y2)/2+3}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
+  return svg;
+}
+function dText(svg, x, y, text, cls='t-dim', anchor='middle'){ return svg+`<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${text}</text>`; }
+
+/* person: returns svg for a stick figure standing at (x, y_floor) of height Hpx */
+function person(svg, x, y, ph, stroke='#333'){
+  const r = ph*0.07;
+  svg += `<g stroke="${stroke}" stroke-width="1.5" fill="none">
+    <circle cx="${x}" cy="${y-ph}" r="${r}"/>
+    <path d="M${x},${y-ph+r} V${y-ph*0.72} M${x},${y-ph*0.72} L${x-ph*0.16},${y-ph*0.44} M${x},${y-ph*0.72} L${x+ph*0.16},${y-ph*0.44} M${x},${y-ph*0.52} L${x-ph*0.12},${y} M${x},${y-ph*0.52} L${x+ph*0.12},${y}"/>
+  </g>`;
+  return svg;
+}
+
+/* ── Section: straight ── */
+function renderSection(d){
+  const vw=760, vh=540;
+  const {H,L,b,hh,N,ov1,ov2,H_clear,t,R,P,platEl,type,platClear,edge1,edge2}=d;
+  const x0=-Math.max(240, b*1.2), x1=L+Math.max(300,b*1.2);
+  const y0=-90, y1=H+Math.max(150, R*0.35);
+  const F=fit([x0,y0,x1,y1], vw, vh, 36);
+  const sx=F.sx, sy=F.sy;
+  let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="剖面图">
+    <defs><style>
+      .dim{stroke:oklch(55% 0.02 240);stroke-width:1}
+      .dim-f{fill:oklch(55% 0.02 240)}
+      .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
+      .t-dim.ok{fill:var(--ok,#1a7f37)} .t-dim.bad{fill:var(--bad,#c62828)}
+      .t-lbl{font-size:12.5px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240)}
+      .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
+      .stair{fill:oklch(97% 0.005 250);stroke:oklch(65% 0.02 240);stroke-width:1.2}
+      .nosing{stroke:oklch(35% 0.02 240);stroke-width:2;fill:none}
+      .slab{fill:oklch(88% 0.08 145);stroke:oklch(52% 0.16 145);stroke-width:1}
+      .slabline{stroke:oklch(52% 0.16 145);stroke-width:1.3;stroke-dasharray:7 4}
+      .edge{stroke:oklch(65% 0.15 75);stroke-width:1.6;stroke-dasharray:4 3}
+      .safe{stroke:var(--warn,#b45309);stroke-width:1.3;stroke-dasharray:5 4}
+      .hr-ok{stroke:var(--ok,#1a7f37);stroke-width:1.4;stroke-dasharray:2 0}
+      .hr-bad{stroke:var(--bad,#c62828);stroke-width:1.6}
+      .person{stroke:oklch(30% 0.05 240)}
+      .ground{stroke:oklch(45% 0.02 240);stroke-width:3}
+    </style></defs>`;
+
+  /* ground */
+  svg += `<path d="M${sx(x0)},${sy(0)} H${sx(x1)}" class="ground"/>`;
+  svg += `<text x="${sx(x0)+10}" y="${sy(0)+16}" class="t-lbl2">一层 0.000</text>`;
+
+  /* 1F approach under slab (hatch region) */
+  svg += `<path d="M${sx(x0)},${sy(0)} V${sy(H_clear)} H${sx(ov1<=0?0:ov1)} V${sy(0)}" fill="oklch(50% 0.02 240/.05)" stroke="none"/>`;
+
+  /* steps */
+  for(let i=0;i<N-1;i++){
+    const px0=i*b, px1=(i+1)*b, py0=i*hh, py1=(i+1)*hh;
+    svg += `<polygon points="${sx(px0)},${sy(py0)} ${sx(px0)},${sy(py1)} ${sx(px1)},${sy(py1)} ${sx(px1)},${sy(py0)}" class="stair"/>`;
+  }
+  /* nosings line */
+  let p=`M${sx(0)},${sy(0)}`;
+  for(let i=1;i<=N;i++){ p+=` L${sx((i-1)*b)},${sy(i*hh)} L${sx(i*b)},${sy(i*hh)}`; }
+  p+=` L${sx(L)},${sy(H)}`;
+  svg += `<path d="${p}" class="nosing"/>`;
+
+  /* 2F slab (opening edge at ov1) */
+  const slEdge = Math.max(ov1,0);
+  svg += `<rect x="${sx(x0)}" y="${sy(H)}" width="${sx(slEdge)-sx(x0)}" height="${sy(H-t)-sy(H)}" class="slab"/>`;
+  svg += `<rect x="${sx(L)}" y="${sy(H)}" width="${sx(x1)-sx(L)}" height="${sy(H-t)-sy(H)}" class="slab"/>`;
+  svg += `<path d="M${sx(x0)},${sy(H-t)} H${sx(slEdge)} M${sx(L)},${sy(H-t)} H${sx(x1)}" class="slabline"/>`;
+  svg += `<text x="${sx(L)+8}" y="${sy(H-t)-6}" class="t-lbl2">2F 楼板（底面标高 ${fmt(H_clear)}）</text>`;
+
+  /* opening edge marker + headroom */
+  const edgeX = slEdge;
+  let hrVal;
+  if(ov1>0){
+    const elev = d.elevAt(ov1);
+    hrVal = H_clear - elev;
+    svg += `<path d="M${sx(edgeX)},${sy(H-t)} V${sy(elev)}" class="edge"/>`;
+    svg = dText(svg,sx(edgeX), sy(H-t)-8, '洞口边缘', 't-lbl2');
+    svg = dText(svg,sx(edgeX), sy(H-t)+14, `净空 ${fmt(hrVal)}`, `t-dim ${hrVal>=R?'ok':'bad'}`);
+  } else {
+    hrVal = H_clear;
+    svg += `<path d="M${sx(edgeX)},${sy(H-t)} V${sy(0)}" class="edge"/>`;
+    svg = dText(svg,sx(edgeX), sy(H-t)-8, '洞口覆盖全梯段', 't-lbl2');
+  }
+
+  /* 第一跑逐级净高检测：安全线与会碰头台阶 */
+  if(d.run1Safe > 0 && d.run1Safe < d.run1N){
+    const xS = d.run1Safe * b, elS = d.run1Safe * hh;
+    svg += `<path d="M${sx(xS)},${sy(elS)} V${sy(H_clear)}" class="safe"/>`;
+    svg = dText(svg,sx(xS)+6, sy((elS+H_clear)/2), `净高安全线：第${d.run1Safe+1}级起需洞口`, 't-lbl2');
+  }
+  d.run1Steps.forEach(st=>{
+    if(st.bad){
+      const xB = st.i * b;
+      svg += `<path d="M${sx(xB)},${sy(st.i*hh)} V${sy(H_clear)}" stroke="var(--bad,#c62828)" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+      svg = dText(svg,sx(xB)+6, sy(st.i*hh + (H_clear - st.i*hh)/2), `第${st.i}级 净高 ${fmt(st.hr)}`, 't-dim bad');
+    }
+  });
+
+  /* person at critical point */
+  const px = ov1>0 ? ov1 : 0;
+  const py = ov1>0 ? d.elevAt(ov1) : 0;
+  if(px <= L+0.01){
+    const phPx = P * F.s;
+    const headY = sy(py) - phPx;
+    svg = person(svg, sx(px), sy(py), phPx, 'oklch(30% 0.05 240)');
+    if(headY < sy(H_clear)-2){ // 头顶越过楼板底面线 → 撞头
+      svg += `<path d="M${sx(px)-18},${sy(H_clear)} H${sx(px)+18}" stroke="var(--bad,#c62828)" stroke-width="2"/>`;
+      svg = dText(svg,sx(px)+22, sy(H_clear)-8, '头部撞楼板', 't-dim bad');
+    }
+    svg = dText(svg,sx(px), sy(py)-phPx-10, `${P/1000} m`, 't-dim');
+  }
+
+  /* dims */
+  svg = dH(svg, sx(0), sx(L), sy(-40), `投影长 L = ${fmt(L)}`);
+  svg = dV(svg, sy(H), sy(0), sx(L+Math.max(140,b)), `层高 H = ${fmt(H)}`);
+  svg = dV(svg, sy(H_clear), sy(0), sx(x0)+30, `净高 ${fmt(H_clear)}`, d.H_clear>=R?'ok':'bad');
+  svg = dH(svg, sx(0), sx(b), sy(0)+60, `踏面 ${fmt(b)}`);
+  svg = dV(svg, sy(hh), sy(0), sx(-b*0.55), `踢面 ${fmt(hh)}`, 'dim');
+
+  /* headroom summary callout */
+  svg += `<g>`;
+  svg += `<rect x="14" y="14" width="300" height="86" rx="10" fill="oklch(100% 0 0/.9)" stroke="oklch(88% 0.008 240)"/>`;
+  svg = dText(svg,30, 34, '净空校验（1.85m 人）', 't-lbl');
+  svg = dText(svg,30, 56, `需求净空 R = ${fmt(R)} ${U()}`, 't-dim', 'start');
+  svg = dText(svg,30, 76, ov1>0 ? `洞口边缘净空 = ${fmt(hrVal)} ${U()}  ${hrVal>=R?'✓ 通过':'✕ 不足'}` : `洞口覆盖全梯段 · 净高 ${fmt(H_clear)} ${U()}`, 't-dim', 'start');
+  svg = dText(svg,30, 94, ov1>0? `安全悬挑上限 = ${fmt(d.ovMax1)} ${U()}（当前 ${fmt(ov1)}）` : `最小洞口长 = ${fmt(L)} ${U()}`, 't-dim', 'start');
+  svg += `</g>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+/* ── Section: L unfolded ── */
+function renderSectionL(d){
+  const vw=760, vh=540;
+  const {H,L1,L2,b,hh,k,N,m,k2,ov1,ov2,H_clear,t,R,P,platEl,platTop,platClear,edge1,edge2}=d;
+  const wp = d.w; // platform width in unfolded view
+  const tot = L1 + wp + L2;
+  const x0=-Math.max(160,b), x1=tot+Math.max(300,b*1.2);
+  const y0=-90, y1=H+Math.max(150, R*0.35);
+  const F=fit([x0,y0,x1,y1], vw, vh, 36);
+  const sx=F.sx, sy=F.sy;
+  const off = p => p + (p>L1 ? wp : 0); // map run2 local x to unfolded
+  let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="L型展开剖面">
+    <defs><style>
+      .dim{stroke:oklch(55% 0.02 240);stroke-width:1}.dim-f{fill:oklch(55% 0.02 240)}
+      .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
+      .t-dim.ok{fill:var(--ok,#1a7f37)} .t-dim.bad{fill:var(--bad,#c62828)}
+      .t-lbl{font-size:12.5px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240)}
+      .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
+      .stair{fill:oklch(97% 0.005 250);stroke:oklch(65% 0.02 240);stroke-width:1.2}
+      .plat{fill:oklch(94% 0.04 145);stroke:oklch(52% 0.16 145);stroke-width:1.2}
+      .nosing{stroke:oklch(35% 0.02 240);stroke-width:2;fill:none}
+      .slab{fill:oklch(88% 0.08 145);stroke:oklch(52% 0.16 145);stroke-width:1}
+      .slabline{stroke:oklch(52% 0.16 145);stroke-width:1.3;stroke-dasharray:7 4}
+      .edge{stroke:oklch(65% 0.15 75);stroke-width:1.6;stroke-dasharray:4 3}
+      .safe{stroke:var(--warn,#b45309);stroke-width:1.3;stroke-dasharray:5 4}
+      .ground{stroke:oklch(45% 0.02 240);stroke-width:3}
+    </style></defs>`;
+
+  svg += `<path d="M${sx(x0)},${sy(0)} H${sx(x1)}" class="ground"/>`;
+  svg += `<text x="${sx(x0)+10}" y="${sy(0)+16}" class="t-lbl2">一层 0.000</text>`;
+
+  /* run 1 steps */
+  for(let i=0;i<k-1;i++){
+    const px0=i*b, px1=(i+1)*b, py0=i*hh, py1=(i+1)*hh;
+    svg += `<polygon points="${sx(px0)},${sy(py0)} ${sx(px0)},${sy(py1)} ${sx(px1)},${sy(py1)} ${sx(px1)},${sy(py0)}" class="stair"/>`;
+  }
+  /* platform（含平台踏步 m 级，逐级升高到 platTop） */
+  if(m>0){
+    for(let j=0;j<m;j++){
+      const px0=L1+j*(wp/m), px1=L1+(j+1)*(wp/m), py0=platEl+j*hh, py1=platEl+(j+1)*hh;
+      svg += `<polygon points="${sx(px0)},${sy(py0)} ${sx(px0)},${sy(py1)} ${sx(px1)},${sy(py1)} ${sx(px1)},${sy(py0)}" class="plat"/>`;
+    }
+  } else {
+    svg += `<polygon points="${sx(L1)},${sy(0)} ${sx(L1)},${sy(platEl)} ${sx(L1+wp)},${sy(platEl)} ${sx(L1+wp)},${sy(0)}" class="plat"/>`;
+  }
+  /* run 2 steps（从 platTop 起步） */
+  for(let i=0;i<k2-1;i++){
+    const px0=L1+wp+i*b, px1=L1+wp+(i+1)*b, py0=platTop+i*hh, py1=platTop+(i+1)*hh;
+    svg += `<polygon points="${sx(px0)},${sy(py0)} ${sx(px0)},${sy(py1)} ${sx(px1)},${sy(py1)} ${sx(px1)},${sy(py0)}" class="stair"/>`;
+  }
+  /* nosings */
+  let p=`M${sx(0)},${sy(0)}`;
+  for(let i=1;i<=k;i++){ p+=` L${sx((i-1)*b)},${sy(i*hh)} L${sx(i*b)},${sy(i*hh)}`; }
+  if(m>0){
+    for(let j=1;j<=m;j++){ const xa=L1+(j-1)*(wp/m), xb=L1+j*(wp/m); p+=` L${sx(xa)},${sy(platEl+j*hh)} L${sx(xb)},${sy(platEl+j*hh)}`; }
+  } else {
+    p+=` L${sx(L1)},${sy(platEl)} L${sx(L1+wp)},${sy(platEl)}`;
+  }
+  for(let i=1;i<=k2;i++){ const xx=L1+wp+(i-1)*b; p+=` L${sx(xx)},${sy(platTop+i*hh)} L${sx(xx+b)},${sy(platTop+i*hh)}`; }
+  p+=` L${sx(L1+wp+L2)},${sy(H)}`;
+  svg += `<path d="${p}" class="nosing"/>`;
+
+  /* 2F slab: over run1 bottom, run2 bottom, and beyond run2 top */
+  const e1=Math.max(ov1,0), e2=Math.max(ov2,0);
+  svg += `<rect x="${sx(x0)}" y="${sy(H)}" width="${sx(e1)-sx(x0)}" height="${sy(H-t)-sy(H)}" class="slab"/>`;
+  svg += `<rect x="${sx(L1+wp)}" y="${sy(H)}" width="${sx(L1+wp+e2)-sx(L1+wp)}" height="${sy(H-t)-sy(H)}" class="slab"/>`;
+  svg += `<rect x="${sx(L1+wp+L2)}" y="${sy(H)}" width="${sx(x1)-sx(L1+wp+L2)}" height="${sy(H-t)-sy(H)}" class="slab"/>`;
+  svg += `<path d="M${sx(x0)},${sy(H-t)} H${sx(e1)} M${sx(L1+wp)},${sy(H-t)} H${sx(L1+wp+e2)} M${sx(L1+wp+L2)},${sy(H-t)} H${sx(x1)}" class="slabline"/>`;
+
+  /* run1 edge */
+  let critX=null, critEl=null, critHr=null;
+  if(ov1>0){
+    const el=d.elevAt(ov1); const hr=H_clear-el;
+    svg += `<path d="M${sx(ov1)},${sy(H-t)} V${sy(el)}" class="edge"/>`;
+    svg = dText(svg,sx(ov1), sy(H-t)-8, '边缘', 't-lbl2');
+    svg = dText(svg,sx(ov1)+14, sy((el+H-t)/2), `净空 ${fmt(hr)}`, `t-dim ${hr>=R?'ok':'bad'}`);
+    critX=ov1; critEl=el; critHr=hr;
+  }
+  /* run2 edge */
+  if(ov2>0){
+    const ux=L1+wp+ov2, el=platTop+d.elevAt(ov2), hr=H_clear-el;
+    svg += `<path d="M${sx(ux)},${sy(H-t)} V${sy(el)}" class="edge"/>`;
+    svg = dText(svg,sx(ux), sy(H-t)-8, '边缘', 't-lbl2');
+    svg = dText(svg,sx(ux)+14, sy((el+H-t)/2), `净空 ${fmt(hr)}`, `t-dim ${hr>=R?'ok':'bad'}`);
+    if(critHr===null || hr<critHr){ critX=ux; critEl=el; critHr=hr; }
+  }
+  /* platform headroom dim */
+  svg = dV(svg, sy(H_clear), sy(platTop), sx(L1+wp/2), `平台距楼板底 ${fmt(platClear)}（洞口覆盖）`, 'dim', 10);
+
+  /* 第一跑逐级净高检测：安全线与会碰头台阶 */
+  if(d.run1Safe > 0 && d.run1Safe < d.run1N){
+    const xS = d.run1Safe * b, elS = d.run1Safe * hh;
+    svg += `<path d="M${sx(xS)},${sy(elS)} V${sy(H_clear)}" class="safe"/>`;
+    svg = dText(svg,sx(xS)+6, sy((elS+H_clear)/2), `净高安全线：第${d.run1Safe+1}级起需洞口`, 't-lbl2');
+  }
+  d.run1Steps.forEach(st=>{
+    if(st.bad){
+      const xB = st.i * b;
+      svg += `<path d="M${sx(xB)},${sy(st.i*hh)} V${sy(H_clear)}" stroke="var(--bad,#c62828)" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+      svg = dText(svg,sx(xB)+6, sy(st.i*hh + (H_clear - st.i*hh)/2), `第${st.i}级 净高 ${fmt(st.hr)}`, 't-dim bad');
+    }
+  });
+
+  /* person at tightest edge (or on 1F approach under slab when fully open) */
+  let px2, py2;
+  if(critX!==null){ px2=critX; py2=critEl; }
+  else { px2=x0/2; py2=0; }
+  const phPx=P*F.s;
+  svg = person(svg, sx(px2), sy(py2), phPx, 'oklch(30% 0.05 240)');
+  if(sy(py2)-phPx < sy(H_clear)-2){
+    svg += `<path d="M${sx(px2)-16},${sy(H_clear)} H${sx(px2)+16}" stroke="var(--bad,#c62828)" stroke-width="2"/>`;
+  }
+  svg = dText(svg,sx(px2), sy(py2)-phPx-10, `${P/1000} m`, 't-dim');
+
+  /* level labels */
+  svg = dText(svg,sx(L1/2), sy(0)+34, `第一跑 ${k} 级 · 投影 ${fmt(L1)}`, 't-lbl2');
+  svg = dText(svg,sx(L1+wp/2), sy(platTop)+18, `平台踏步 ${m} 级 · 顶 ${fmt(platTop)}`, 't-lbl2');
+  svg = dText(svg,sx(L1+wp+L2/2), sy(0)+34, `第二跑 ${k2} 级 · 投影 ${fmt(L2)}`, 't-lbl2');
+
+  /* dims */
+  svg = dH(svg, sx(0), sx(L1+wp+L2), sy(-40), `展开总长 = ${fmt(tot)}`);
+  svg = dV(svg, sy(H), sy(0), sx(tot+Math.max(120,b)), `层高 H = ${fmt(H)}`);
+  svg = dV(svg, sy(H_clear), sy(0), sx(x0)+30, `净高 ${fmt(H_clear)}`, d.H_clear>=R?'ok':'bad');
+
+  /* callout */
+  const worst = critHr!==null ? critHr : d.H_clear - platTop;
+  svg += `<rect x="14" y="14" width="320" height="86" rx="10" fill="oklch(100% 0 0/.9)" stroke="oklch(88% 0.008 240)"/>`;
+  svg = dText(svg,30, 34, '净空校验（1.85m 人）', 't-lbl');
+  svg = dText(svg,30, 56, `需求净空 R = ${fmt(R)} ${U()}`, 't-dim', 'start');
+  svg = dText(svg,30, 76, critHr!==null ? `最不利净空 = ${fmt(critHr)} ${U()} ${critHr>=R?'✓':'✕'}` : `洞口覆盖全梯段 · 平台距楼板底 ${fmt(platClear)} ${U()}`, 't-dim', 'start');
+  svg = dText(svg,30, 94, `安全悬挑：第一跑 ≤ ${fmt(d.ovMax1)} / 第二跑 ≤ ${fmt(d.ovMax2)} ${U()}`, 't-dim', 'start');
+
+  svg += `</svg>`;
+  return svg;
+}
+
+/* ── Plan ── */
+function renderPlan(d){
+  const vw=760, vh=500;
+  const {type,L,L1,L2,w,b,hh,k,N,m,k2,platShape,platEl}=d;
+  let world;
+  if(type==='straight'){
+    world=[-w*0.9, -w*1.4, L+w*0.9, w*1.4];
+  } else {
+    const X=L1+w, Y=w+L2;
+    world=[-w*0.9, -w*1.4, X+w*0.9, Y+w*1.4];
+  }
+  const F=fit(world, vw, vh, 36);
+  const sx=F.sx, sy=F.sy;
+  let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="平面图">
+    <defs><style>
+      .t-lbl{font-size:13px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240);font-weight:600}
+      .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
+      .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
+      .t-dim.ok{fill:var(--ok,#1a7f37)} .t-dim.bad{fill:var(--bad,#c62828)}
+      .dim{stroke:oklch(55% 0.02 240);stroke-width:1}.dim-f{fill:oklch(55% 0.02 240)}
+      .run1{fill:oklch(96% 0.01 240);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .run2{fill:oklch(94% 0.04 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .plat{fill:oklch(96% 0.02 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .step{stroke:oklch(70% 0.02 240);stroke-width:0.8}
+      .open{fill:none;stroke:oklch(52% 0.16 145);stroke-width:1.5;stroke-dasharray:8 5}
+      .arr{stroke:oklch(35% 0.02 240);stroke-width:1.6;fill:none}
+    </style></defs>`;
+
+  if(type==='straight'){
+    svg += `<rect x="${sx(0)}" y="${sy(w)}" width="${sx(L)-sx(0)}" height="${sy(0)-sy(w)}" class="run1"/>`;
+    for(let i=1;i<N;i++){ const x=i*b; svg += `<path d="M${sx(x)},${sy(w)} V${sy(0)}" class="step"/>`; }
+    svg += `<rect x="${sx(0)}" y="${sy(w)}" width="${sx(L)-sx(0)}" height="${sy(0)-sy(w)}" class="open"/>`;
+    /* direction arrow */
+    svg += `<path d="M${sx(0)+8},${sy(w/2)} H${sx(L)-14}" class="arr" marker-end=""/>`;
+    svg += `<polygon points="${arrow(sx(L)-14, sy(w/2), 1, 0)}" class="dim-f"/>`;
+    svg = dText(svg,sx(L/2), sy(w/2)+4, `上行 ${N-1} 级`, 't-lbl');
+    svg = dH(svg, sx(0), sx(L), sy(-0.35*w), `投影长 L = ${fmt(L)}`);
+    svg = dV(svg, sy(0), sy(w), sx(L)+0.15*w, `净宽 w = ${fmt(w)}`, 'dim', 10);
+    svg = dH(svg, sx(0), sx(b), sy(w+0.4*w), `踏面 ${fmt(b)}`);
+    svg = dText(svg,sx(L/2), sy(w)-18, `洞口（虚线）`, 't-lbl2');
+  } else {
+    /* run1 */
+    svg += `<rect x="${sx(0)}" y="${sy(w)}" width="${sx(L1)-sx(0)}" height="${sy(0)-sy(w)}" class="run1"/>`;
+    for(let i=1;i<k;i++){ const x=i*b; svg += `<path d="M${sx(x)},${sy(w)} V${sy(0)}" class="step"/>`; }
+    /* platform（矩形 / 三角形，含平台踏步） */
+    if(platShape==='tri'){
+      svg += `<polygon points="${sx(L1)},${sy(w)} ${sx(L1+w)},${sy(w)} ${sx(L1)},${sy(0)}" class="plat"/>`;
+      if(m>0){ for(let j=1;j<m;j++){ const px=L1+(j/m)*w, py=(j/m)*w; svg += `<path d="M${sx(L1)},${sy(w)} L${sx(px)},${sy(py)}" class="step"/>`; } }
+    } else {
+      svg += `<rect x="${sx(L1)}" y="${sy(w)}" width="${sx(L1+w)-sx(L1)}" height="${sy(0)-sy(w)}" class="plat"/>`;
+      if(m>0){
+        /* 方形逐级加大：从内角 (L1,w) 起嵌套方框，越往外越大、越高 */
+        for(let j=1;j<=m;j++){ const a=w*(j/m); svg += `<path d="M${sx(L1+a)},${sy(w)} V${sy(w-a)} H${sx(L1)}" class="step"/>`; }
+      }
+    }
+    /* run2 */
+    svg += `<rect x="${sx(L1)}" y="${sy(w+L2)}" width="${sx(L1+w)-sx(L1)}" height="${sy(w)-sy(w+L2)}" class="run2"/>`;
+    for(let i=1;i<k2;i++){ const y=w+i*b; svg += `<path d="M${sx(L1)},${sy(y)} H${sx(L1+w)}" class="step"/>`; }
+    /* opening */
+    if(platShape==='tri'){
+      svg += `<path d="M${sx(0)},${sy(w)} H${sx(L1)} V${sy(0)} L${sx(L1+w)},${sy(w)} V${sy(w+L2)} H${sx(L1)} V${sy(w)}" class="open"/>`;
+    } else {
+      svg += `<path d="M${sx(0)},${sy(w)} H${sx(L1)} V${sy(0)} H${sx(L1+w)} V${sy(w+L2)} H${sx(L1)} V${sy(w)}" class="open"/>`;
+    }
+
+    /* 方向箭头（跑名并入下方尺寸标注，移出图形避免压住踏步） */
+    svg += `<path d="M${sx(0)+8},${sy(w/2)} H${sx(L1)-14}" class="arr"/>`;
+    svg += `<polygon points="${arrow(sx(L1)-14, sy(w/2), 1, 0)}" class="dim-f"/>`;
+    svg += `<path d="M${sx(L1+w/2)},${sy(w+L2)+8} V${sy(w)-14}" class="arr"/>`;
+    svg += `<polygon points="${arrow(sx(L1+w/2), sy(w)-14, 0, 1)}" class="dim-f"/>`;
+
+    svg = dText(svg,sx(L1+w/2), sy(w/2)+4, m>0 ? `平台踏步 ${m} 级` : `休息平台 ${fmt(platEl)}`, 't-lbl2');
+    /* 尺寸标注（全部在楼梯轮廓外，距离收紧约一半；第二跑在右侧独立标出） */
+    svg = dH(svg, sx(0), sx(L1), sy(-0.22*w), `第一跑 ${k} 级 · ${fmt(L1)}`);
+    svg = dH(svg, sx(L1), sx(L1+w), sy(-0.22*w), `平台 ${fmt(w)}`);
+    svg = dH(svg, sx(0), sx(L1+w), sy(-0.36*w), `总长 ${fmt(L1+w)}`);
+    svg = dV(svg, sy(w+L2), sy(w), sx(L1+w)+0.075*w, `第二跑 ${k2} 级 · ${fmt(L2)}`);
+    svg = dV(svg, sy(0), sy(w+L2), sx(0)-0.18*w, `总宽 ${fmt(w+L2)}`, 'dim', 8, 'end');
+    svg = dV(svg, sy(w), sy(0), sx(0)-0.09*w, `净宽 ${fmt(w)}`, 'dim', 5, 'end');
+    svg = dH(svg, sx(L1), sx(L1+w), sy(w+L2)+0.15*w, `净宽 ${fmt(w)}`, 'dim', 10);
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+/* ── ISO 3D ── */
+const ISO_C=0.866, ISO_S=0.5;
+function isoX(x,z,y){ return (x-z)*ISO_C; }
+function isoY(x,z,y){ return (x+z)*ISO_S - y; }
+function renderIso(d){
+  const vw=720, vh=520;
+  const {type,L,L1,L2,w,b,hh,k,N,H,t,m,k2,platTop,platShape,platEl}=d;
+  const boxes=[], tris=[], lb=[];
+  if(type==='straight'){
+    for(let j=0;j<N-1;j++) boxes.push({x0:j*b,z0:0,y0:j*hh, x1:(j+1)*b,z1:w,y1:(j+1)*hh});
+  } else {
+    for(let j=0;j<k-1;j++) boxes.push({x0:j*b,z0:0,y0:j*hh, x1:(j+1)*b,z1:w,y1:(j+1)*hh});
+    if(platShape==='tri'){
+      /* 三角形平台：以内角 A=(L1,w) 为圆心，踏步沿转弯角向对角 D→E 抬高 */
+      const A=[L1,w], D=[L1,0], E=[L1+w,w];
+      if(m>0){
+        for(let j=0;j<m;j++){ const P0=[L1+(j/m)*w,(j/m)*w], P1=[L1+((j+1)/m)*w,((j+1)/m)*w]; tris.push({A,B:P0,C:P1,y0:platEl+j*hh,y1:platEl+(j+1)*hh,key:L1+w}); }
+      } else {
+        tris.push({A,B:D,C:E,y0:0,y1:platEl,key:L1+w});
+      }
+    } else {
+      if(m>0){
+        /* 方形平台踏步：方形逐级加大往上（L 形环带） */
+        for(let j=1;j<=m;j++) lb.push({a:w*(j/m), a0:w*((j-1)/m), y0:platEl+(j-1)*hh, y1:platEl+j*hh});
+      } else {
+        boxes.push({x0:L1,z0:0,y0:0, x1:L1+w,z1:w,y1:platEl});
+      }
+    }
+    for(let j=0;j<k2-1;j++) boxes.push({x0:L1,z0:w+j*b,y0:platTop+j*hh, x1:L1+w,z1:w+(j+1)*b,y1:platTop+(j+1)*hh});
+  }
+  const slabX1 = type==='straight' ? L : L1+w;
+  const slabZ1 = type==='straight' ? w : w+L2;
+
+  /* world bounds */
+  let x0=0,x1=slabX1,z0=0,z1=slabZ1,y0=0,y1=H;
+  boxes.forEach(b=>{ x0=Math.min(x0,b.x0);x1=Math.max(x1,b.x1);z0=Math.min(z0,b.z0);z1=Math.max(z1,b.z1);y0=Math.min(y0,b.y0);y1=Math.max(y1,b.y1); });
+  const xs0=isoX(x0,z0,0), xs1=isoX(x1,z1,0), ys0=isoY(x0,z0,y1), ys1=isoY(x1,z1,0);
+  const ww=xs1-xs0, wh=ys0-ys1;
+  const scale=Math.min((vw-56)/ww,(vh-40)/wh);
+  const ox=(vw-ww*scale)/2 - xs0*scale, oy=vh/2 + (ys0+ys1)*scale/2;
+  const PX=(x,z,y)=>ox+(isoX(x,z,y))*scale, PY=(x,z,y)=>oy-(isoY(x,z,y))*scale;
+  const poly=(pts)=>pts.map(p=>PX(p[0],p[1],p[2]).toFixed(1)+','+PY(p[0],p[1],p[2]).toFixed(1)).join(' ');
+
+  let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="3D 轴测图">
+    <defs><style>
+      .f-top{fill:oklch(97% 0.01 240);stroke:oklch(68% 0.02 240);stroke-width:.8}
+      .f-rt {fill:oklch(91% 0.01 240);stroke:oklch(68% 0.02 240);stroke-width:.8}
+      .f-fr {fill:oklch(85% 0.01 240);stroke:oklch(68% 0.02 240);stroke-width:.8}
+      .plat-t{fill:oklch(94% 0.05 145);stroke:oklch(55% 0.16 145);stroke-width:1}
+      .slab{fill:oklch(52% 0.16 145 / .12);stroke:oklch(52% 0.16 145);stroke-width:1.2}
+      .open{fill:none;stroke:oklch(52% 0.16 145);stroke-width:1.4;stroke-dasharray:8 5}
+      .t-dim{font-size:11.5px;font-family:${MONO};fill:oklch(45% 0.02 240)}
+    </style></defs>`;
+
+  /* ground */
+  const gz0=z0-0.6*w, gz1=slabZ1+0.6*w, gx0=x0-0.6*w, gx1=slabX1+0.6*w;
+  svg += `<polygon points="${poly([[gx0,gz0,0],[gx1,gz0,0],[gx1,gz1,0],[gx0,gz1,0]])}" fill="oklch(50% 0.02 240/.05)" stroke="oklch(60% 0.02 240)" stroke-width="1"/>`;
+
+  /* slab top (translucent) */
+  svg += `<polygon points="${poly([[0,0,H],[slabX1,0,H],[slabX1,slabZ1,H],[0,slabZ1,H]])}" class="slab"/>`;
+  /* slab side faces */
+  svg += `<polygon points="${poly([[slabX1,0,H-t],[slabX1,0,H],[slabX1,slabZ1,H],[slabX1,slabZ1,H-t]])}" class="slab"/>`;
+  svg += `<polygon points="${poly([[0,slabZ1,H-t],[0,slabZ1,H],[slabX1,slabZ1,H],[slabX1,slabZ1,H-t]])}" class="slab"/>`;
+
+  /* drawables：盒体 + 三角棱柱，统一按 (x0+z0) 由远及近绘制 */
+  const drawables = boxes.map(b=>({key:b.x0+b.z0, draw:()=>{
+    const c=[
+      [b.x0,b.z0,b.y0],[b.x1,b.z0,b.y0],[b.x1,b.z1,b.y0],[b.x0,b.z1,b.y0],
+      [b.x0,b.z0,b.y1],[b.x1,b.z0,b.y1],[b.x1,b.z1,b.y1],[b.x0,b.z1,b.y1]];
+    const isPlat = b.x0===L1 && b.z1<=w;
+    const topCls=isPlat?'plat-t':'f-top';
+    svg+=`<polygon points="${poly([c[4],c[5],c[6],c[7]])}" class="${topCls}"/>`;
+    svg+=`<polygon points="${poly([c[1],c[2],c[6],c[5]])}" class="f-rt"/>`;
+    svg+=`<polygon points="${poly([c[2],c[3],c[7],c[6]])}" class="f-fr"/>`;
+  }}));
+  tris.forEach(t=>{ drawables.push({key:t.key, draw:()=>{
+    const top=[[t.A[0],t.A[1],t.y1],[t.B[0],t.B[1],t.y1],[t.C[0],t.C[1],t.y1]];
+    const bot=[[t.A[0],t.A[1],t.y0],[t.B[0],t.B[1],t.y0],[t.C[0],t.C[1],t.y0]];
+    svg+=`<polygon points="${poly(top)}" class="plat-t"/>`;
+    svg+=`<polygon points="${poly([bot[0],bot[1],top[1],top[0]])}" class="f-rt"/>`;
+    svg+=`<polygon points="${poly([bot[1],bot[2],top[2],top[1]])}" class="f-fr"/>`;
+    svg+=`<polygon points="${poly([bot[2],bot[0],top[0],top[2]])}" class="f-rt"/>`;
+  }}); });
+  lb.forEach(s=>{ drawables.push({key:L1+w+s.a/2, draw:()=>{
+    const Lp=[[L1+s.a,w-s.a],[L1+s.a,w],[L1,w],[L1,w-s.a0],[L1+s.a0,w-s.a0],[L1+s.a0,w-s.a]];
+    svg+=`<polygon points="${poly(Lp.map(p=>[p[0],p[1],s.y1]))}" class="plat-t"/>`;
+    svg+=`<polygon points="${poly([[L1+s.a,w-s.a,s.y0],[L1+s.a,w-s.a,s.y1],[L1+s.a,w,s.y1],[L1+s.a,w,s.y0]])}" class="f-rt"/>`;
+    svg+=`<polygon points="${poly([[L1,w,s.y0],[L1,w,s.y1],[L1+s.a,w,s.y1],[L1+s.a,w,s.y0]])}" class="f-fr"/>`;
+  }}); });
+  drawables.sort((a,b)=>a.key-b.key).forEach(x=>x.draw());
+
+  /* opening outline on slab top */
+  if(type==='straight'){
+    svg+=`<polygon points="${poly([[0,0,H],[L,0,H],[L,w,H],[0,w,H]])}" class="open"/>`;
+  } else if(platShape==='tri'){
+    svg+=`<polygon points="${poly([[0,0,H],[L1,0,H],[L1+w,w,H],[L1+w,w+L2,H],[L1,w+L2,H],[L1,w,H],[0,w,H]])}" class="open"/>`;
+  } else {
+    svg+=`<polygon points="${poly([[0,0,H],[L1,0,H],[L1,w,H],[L1+w,w,H],[L1+w,w+L2,H],[L1,w+L2,H],[L1,w,H],[0,w,H]])}" class="open"/>`;
+  }
+  /* labels */
+  if(type==='L'){
+    svg += `<text x="${PX(L1/2,w*0.4,H)}" y="${PY(L1/2,w*0.4,H)-6}" class="t-dim" text-anchor="middle">第一跑 ${k} 级</text>`;
+    svg += `<text x="${PX(L1+w*0.6,w+L2/2,H)}" y="${PY(L1+w*0.6,w+L2/2,H)-6}" class="t-dim" text-anchor="middle">第二跑 ${k2} 级</text>`;
+    svg += `<text x="${PX(L1+w/2,w*0.3,H)}" y="${PY(L1+w/2,w*0.3,H)+14}" class="t-dim" text-anchor="middle">平台踏步 ${m} 级</text>`;
+  } else {
+    svg += `<text x="${PX(L/2,w*0.3,H)}" y="${PY(L/2,w*0.3,H)-6}" class="t-dim" text-anchor="middle">一字型 · ${N-1} 级</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+/* ── Schedule ── */
+function renderSchedule(d){
+  const {type,N,hh,b,k,platEl,platTop,m,k2,platShape}=d;
+  let rows='';
+  if(type==='straight'){
+    for(let i=1;i<=N;i++){
+      const last=i===N;
+      const st = !last ? d.run1Steps[i-1] : null;
+      const note = last ? '到达 2F'
+        : (st.bad ? `✕ 会碰头 净高${fmt(st.hr)}`
+          : (st.under ? `净高${fmt(st.hr)} ✓` : `洞口覆盖 ✓`));
+      rows += `<tr class="${last?'last':''}"><td>${i}</td><td class="c">一字型</td><td>${fmt(i*hh)}</td><td>${last?'—':b}</td><td>${fmt(hh)}</td><td class="c">${note}</td></tr>`;
+    }
+  } else {
+    /* 第一跑 1..k */
+    for(let i=1;i<=k;i++){
+      const st = d.run1Steps[i-1];
+      const note = (st.bad ? `✕ 会碰头 净高${fmt(st.hr)}` : (st.under ? `净高${fmt(st.hr)} ✓` : `洞口覆盖 ✓`)) + (i===k?' · 上平台':'');
+      rows += `<tr><td>${i}</td><td class="c">第一跑</td><td>${fmt(i*hh)}</td><td>${b}</td><td>${fmt(hh)}</td><td class="c">${note}</td></tr>`;
+    }
+    /* 平台踏步 k+1 .. k+m */
+    for(let j=1;j<=m;j++){
+      const elev=(k+j)*hh;
+      rows += `<tr><td>${k+j}</td><td class="c">平台踏步 ${j}</td><td>${fmt(elev)}</td><td>—</td><td>${fmt(hh)}</td><td class="c">${j===m?'转第二跑':'—'}</td></tr>`;
+    }
+    rows += `<tr class="gr"><td>—</td><td class="c">休息平台（${platShape==='tri'?'三角':'矩形'}）</td><td>${fmt(platEl)}~${fmt(platTop)}</td><td>${b}×${fmt(d.w)}</td><td>${m} 级</td><td class="c">转角</td></tr>`;
+    /* 第二跑 k+m+1 .. N */
+    for(let i=k+m+1;i<=N;i++){
+      const last=i===N;
+      rows += `<tr class="${last?'last':''}"><td>${i}</td><td class="c">第二跑</td><td>${fmt(i*hh)}</td><td>${last?'—':b}</td><td>${fmt(hh)}</td><td class="c">${last?'到达 2F':'—'}</td></tr>`;
+    }
+  }
+  return `<table class="sch"><thead><tr><th>级数</th><th>梯段</th><th>标高(${U()})</th><th>踏面(${U()})</th><th>踢面(${U()})</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ── render all ── */
+function render(){
+  const d=compute(S);
+  const isL = S.type==='L';
+  $('plan-tag').textContent = isL ? 'L 型转角' : '一字型';
+  $('sch-tag').textContent = isL ? `L 型 · ${d.k}/${d.N-d.k} 级` : `一字型 · ${d.N} 级`;
+  $('sum-h').innerHTML = `${fmt(d.H)} <small>净高+板厚</small>`;
+  $('sum-n').textContent = `${d.N} 级`;
+  $('sum-hh').textContent = `${fmt(d.hh)} ${U()}`;
+  $('sum-bh').textContent = `${fmt(d.b)} × ${fmt(d.hh)}`;
+  $('sum-l').innerHTML = `${fmt(d.L)} <small>${U()}</small>`;
+  if(isL){
+    $('sum-l-wrap').style.display='block';
+    $('sum-lr').innerHTML = `${d.k} 级 + ${d.m} 级 + ${d.k2} 级`;
+  } else $('sum-l-wrap').style.display='none';
+  $('sum-open-rec').innerHTML = d.openRec.shape==='L'
+    ? `L 形 ${fmt(d.openRec.l)} × ${fmt(d.openRec.w)} <small>${U()}（外廓长×宽）</small>`
+    : `${fmt(d.openRec.l)} × ${fmt(d.openRec.w)} <small>${U()}（长×宽）</small>`;
+
+  $('sum-r').innerHTML = `${fmt(d.R)} <small>${U()}</small>`;
+  $('sum-open').innerHTML = `${fmt(d.openLen)} <small>${U()}</small>`;
+  $('ov-note').textContent = `安全悬挑上限 ${fmt(isL?Math.min(d.ovMax1,d.ovMax2):d.ovMax1)} ${U()}`;
+
+  $('plan-view').innerHTML = renderPlan(d);
+  $('section-view').innerHTML = isL ? renderSectionL(d) : renderSection(d);
+  $('iso-view').innerHTML = renderIso(d);
+  $('schedule').innerHTML = renderSchedule(d);
+
+  /* checks */
+  const checks = buildChecks(d);
+  $('checks').innerHTML = checks.map(c=>chip(d,c)).join('');
+
+  /* head status */
+  const worst = d.H_clear>=d.R;
+  let bad=false;
+  if(d.ov1>0 && d.edge1!==null && d.edge1<d.R) bad=true;
+  if(isL && d.ov2>0 && d.edge2!==null && d.edge2<d.R) bad=true;
+  const dot=$('head-dot'), txt=$('head-txt');
+  if(!worst || bad){ dot.className='dot bad'; txt.textContent = bad ? '净空不足 · 会撞头' : '净高不足 · 会撞头'; }
+  else { dot.className='dot ok'; txt.textContent = '净空满足 · 需求 ' + fmt(d.R) + ' ' + U(); }
+
+  /* L control */
+  $('l-ctrl').style.display = isL ? 'block':'none';
+  const kIn=document.querySelector('input[data-k="k"]');
+  kIn.max = d.N-2;
+  if(S.k>d.N-2) S.k=d.N-2;
+  kIn.value = S.k;
+  $('val-k').textContent = `${S.k} 级`;
+  $('k-note').textContent = `平台标高 ${fmt(d.platEl)}~${fmt(d.platTop)} ${U()} · 距楼板底 ${fmt(d.platClear)} ${U()}（洞口覆盖）` +
+    (d.m!==S.platSteps ? ` · 踏步数已按级数调整为 ${d.m}` : '') +
+    (d.platShape==='tri' ? ' · 三角形':'');
+
+  /* ov slider max */
+  const ovIn=document.querySelector('input[data-k="ov"]');
+  const ovMax = Math.round(isL? Math.max(d.L1,d.L2) : d.L);
+  ovIn.max = Math.max(0, ovMax);
+  if(S.ov>ovMax){ S.ov=ovMax; ovIn.value=ovMax; }
+  $('val-ov').textContent = `${fmt(S.ov)} ${U()}`;
+
+  /* 缩放视图：切换楼梯类型时回到「适应窗口」 */
+  if(S.type!==lastType){ lastType=S.type; Object.keys(zoomers).forEach(id=>{const z=zoomers[id]; if(z){z.s=1;z.px=0;z.py=0;}}); }
+  syncZoomViews();
+}
+
+/* ── 图纸缩放 / 平移（基于 viewBox） ── */
+const ZVIEWS = { 'plan-view':[760,500], 'section-view':[760,540], 'iso-view':[720,520] };
+const zoomers = {};
+function applyZoom(id){
+  const z=zoomers[id]; if(!z||!z.svg) return;
+  z.svg.setAttribute('viewBox', `${(+z.px).toFixed(1)} ${(+z.py).toFixed(1)} ${(z.VW/z.s).toFixed(2)} ${(z.VH/z.s).toFixed(2)}`);
+}
+function zoomAt(id, cx, cy, factor){
+  const z=zoomers[id]; if(!z) return;
+  const r=z.draw.getBoundingClientRect();
+  const mx=(cx-r.left)/r.width, my=(cy-r.top)/r.height;
+  const dx=z.px+mx*(z.VW/z.s), dy=z.py+my*(z.VH/z.s);
+  const ns=clamp(z.s*factor, 0.15, 12);
+  z.px=dx-mx*(z.VW/ns); z.py=dy-my*(z.VH/ns); z.s=ns;
+  applyZoom(id);
+}
+function zoomBy(id, factor){
+  const z=zoomers[id]; if(!z) return;
+  const r=z.draw.getBoundingClientRect();
+  zoomAt(id, r.left+r.width/2, r.top+r.height/2, factor);
+}
+function initZoom(id){
+  const draw=$(id);
+  const z={ id, draw, VW:ZVIEWS[id][0], VH:ZVIEWS[id][1], s:1, px:0, py:0, svg:null, dragging:false };
+  zoomers[id]=z;
+  draw.addEventListener('wheel', e=>{
+    if(e.ctrlKey||e.metaKey){ e.preventDefault(); zoomAt(id, e.clientX, e.clientY, e.deltaY<0?1.15:1/1.15); }
+  }, {passive:false});
+  draw.addEventListener('dblclick', e=>{ zoomAt(id, e.clientX, e.clientY, 1.6); });
+  draw.addEventListener('pointerdown', e=>{
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    z.dragging=true; z.sx=e.clientX; z.sy=e.clientY; z.spx=z.px; z.spy=z.py;
+    draw.classList.add('grabbing');
+    if(draw.setPointerCapture) draw.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  draw.addEventListener('pointermove', e=>{
+    if(!z.dragging) return;
+    const r=draw.getBoundingClientRect();
+    z.px=z.spx-(e.clientX-z.sx)/r.width*(z.VW/z.s);
+    z.py=z.spy-(e.clientY-z.sy)/r.height*(z.VH/z.s);
+    applyZoom(id);
+  });
+  const end=()=>{ z.dragging=false; draw.classList.remove('grabbing'); };
+  draw.addEventListener('pointerup', end);
+  draw.addEventListener('pointercancel', end);
+  const bar=document.querySelector('.zbar[data-zview="'+id+'"]');
+  if(bar){
+    bar.querySelector('[data-z="in"]').addEventListener('click', e=>{ e.stopPropagation(); zoomBy(id,1.3); });
+    bar.querySelector('[data-z="out"]').addEventListener('click', e=>{ e.stopPropagation(); zoomBy(id,1/1.3); });
+    bar.querySelector('[data-z="fit"]').addEventListener('click', e=>{ e.stopPropagation(); const zz=zoomers[id]; if(zz){zz.s=1;zz.px=0;zz.py=0;} applyZoom(id); });
+  }
+  z.svg=draw.querySelector('svg');
+  applyZoom(id);
+}
+function syncZoomViews(){
+  Object.keys(ZVIEWS).forEach(id=>{
+    const z=zoomers[id]; if(!z) return;
+    z.svg=$(id).querySelector('svg');
+    applyZoom(id);
+  });
+}
+function initAllZooms(){ Object.keys(ZVIEWS).forEach(id=>initZoom(id)); }
+
+/* bind inputs */
+document.querySelectorAll('aside input[data-k]').forEach(inp=>{
+  const set=()=>{
+    const k=inp.dataset.k, v=+inp.value;
+    S[k]=v;
+    $('val-'+k).textContent = k==='h'||k==='b'? `${fmt(v)} ${U()}` : `${fmt(v)} ${U()}`;
+    if(k==='k'){ $('val-k').textContent=`${v} 级`; }
+    if(k==='P'){ $('val-P').textContent=`${fmt(v)} ${U()}`; }
+    render();
+  };
+  inp.addEventListener('input', set);
+});
+document.querySelectorAll('input[name="type"]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    if(r.checked){ S.type=r.value; render(); }
+  });
+});
+document.querySelectorAll('input[name="platSteps"]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    if(r.checked){ S.platSteps=+r.value; render(); }
+  });
+});
+document.querySelectorAll('input[name="platShape"]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    if(r.checked){ S.platShape=r.value; render(); }
+  });
+});
+
+/* 单位切换 mm / 英寸 */
+function setAllValLabels(){
+  ['H_clear','t','h','b','w','k','P','ov'].forEach(k=>{
+    const el=document.getElementById('val-'+k);
+    if(!el) return;
+    el.textContent = k==='k' ? (S.k+' 级') : (fmt(S[k])+' '+U());
+  });
+}
+$('unit-badge').addEventListener('click', ()=>{
+  S.unit = S.unit==='mm' ? 'in' : 'mm';
+  $('unit-badge').textContent = '单位 ' + U();
+  setAllValLabels();
+  render();
+});
+
+/* 顶部跳转：滚动侧栏到对应区块 */
+document.querySelectorAll('.headnav a[data-nav]').forEach(a=>{
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    const aside=document.querySelector('aside');
+    const el=document.getElementById(a.dataset.nav);
+    if(aside&&el){
+      const top=el.getBoundingClientRect().top - aside.getBoundingClientRect().top + aside.scrollTop - 12;
+      aside.scrollTo({top:Math.max(0,top), behavior:'smooth'});
+    }
+  });
+});
+
+/* 导出 / 导入：存方案、导入方案、存图（SVG） */
+function downloadText(text, filename, mime){
+  const blob=new Blob([text], {type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+function syncControlsFromS(){
+  document.querySelectorAll('input[name="type"]').forEach(r=>{ r.checked = r.value===S.type; });
+  document.querySelectorAll('input[name="platSteps"]').forEach(r=>{ r.checked = (+r.value)===S.platSteps; });
+  document.querySelectorAll('input[name="platShape"]').forEach(r=>{ r.checked = r.value===S.platShape; });
+  document.querySelectorAll('aside input[data-k]').forEach(inp=>{ inp.value = S[inp.dataset.k]; });
+  setAllValLabels();
+}
+$('btn-save').addEventListener('click', ()=>{
+  const data={ name:'楼梯设计方案', version:1, savedAt:new Date().toISOString(), params:JSON.parse(JSON.stringify(S)) };
+  downloadText(JSON.stringify(data,null,2), '楼梯方案.json', 'application/json');
+});
+$('btn-import').addEventListener('click', ()=>{ $('import-file').click(); });
+$('import-file').addEventListener('change', e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      const p=(d.params && typeof d.params==='object') ? d.params : d;
+      Object.keys(p).forEach(k=>{ if(k in S) S[k]=p[k]; });
+      syncControlsFromS();
+      render();
+      $('head-txt').textContent = '方案已导入';
+    }catch(err){ alert('方案文件无效'); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+});
+function buildDrawingSVG(){
+  const views=[
+    ['plan-view','平面图 · 顶视', 500],
+    ['section-view','剖面图 · 净空校验', 540],
+    ['iso-view','3D 轴测示意', 520]
+  ];
+  const W=1400; let y=0, inner='';
+  views.forEach(([id,label,h])=>{
+    const svg=document.getElementById(id).querySelector('svg');
+    if(!svg) return;
+    const vb=svg.getAttribute('viewBox')||'0 0 760 500';
+    inner += `<text x="20" y="${y+26}" font-family="sans-serif" font-size="17" font-weight="bold" fill="#1f2937">${label}</text>`;
+    inner += `<svg x="0" y="${y+38}" width="${W}" height="${h}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${svg.innerHTML}</svg>`;
+    y += h + 64;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}" viewBox="0 0 ${W} ${y}" style="background:#fff">${inner}</svg>`;
+}
+$('btn-draw-svg').addEventListener('click', ()=>{
+  downloadText(buildDrawingSVG(), '楼梯图.svg', 'image/svg+xml');
+});
+$('btn-draw-jpg').addEventListener('click', ()=>{
+  const svgString=buildDrawingSVG();
+  const blob=new Blob([svgString], {type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width; canvas.height=img.height;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    const dataUrl=canvas.toDataURL('image/jpeg', 0.92);
+    const a=document.createElement('a');
+    a.href=dataUrl; a.download='楼梯图.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  img.onerror=()=>{ alert('JPG 导出失败：浏览器无法解析该 SVG'); URL.revokeObjectURL(url); };
+  img.src=url;
+});
+
+/* init value labels + first render */
+document.querySelectorAll('aside input[data-k]').forEach(inp=>{
+  const k=inp.dataset.k, v=+inp.value;
+  if(k==='h'||k==='b') $('val-'+k).textContent=`${fmt(v)} ${U()}`;
+  else if(k==='k') $('val-'+k).textContent=`${v} 级`;
+  else if(k==='P') $('val-P').textContent=`${fmt(v)} ${U()}`;
+  else $('val-'+k).textContent=`${fmt(v)} ${U()}`;
+});
+render();
+initAllZooms();
+</script>
+</body>
+</html>
