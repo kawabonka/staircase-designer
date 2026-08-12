@@ -1,16 +1,16 @@
 # 楼梯设计器 · 自建房/住宅
 
-一个纯 HTML 的楼梯设计工具，无需安装，双击 `staircase-designer-v4.html` 即可在浏览器中使用。
+一个纯 HTML 的楼梯设计工具，无需安装，双击 `staircase-designer-v5.html` 即可在浏览器中使用。
 
 ## 在线使用
 
-<https://kawabonka.github.io/staircase-designer/staircase-designer-v4.html>
+<https://kawabonka.github.io/staircase-designer/staircase-designer-v5.html>
 
 ## 功能
 
 - 楼梯类型选择（一字型 / L 型转角 / U 型转角）
 - 基本尺寸参数设置（踏步宽、高、梯宽、层高等）
-- L / U 型转角自定义（休息平台、转角踏步、梯井宽）
+- L / U 型转角自定义（休息平台、转角踏步、梯井宽、平台形状）
 - 净空与撞头提示
 - 住宅规范校验（参考 GB 50352）
 - 平面图、剖面图、3D 视图与排砖/构件表
@@ -21,11 +21,18 @@
 
 ## 本地使用
 
-直接用浏览器打开 `staircase-designer-v4.html` 即可，所有数据都在本地计算，不上传任何信息。
+直接用浏览器打开 `staircase-designer-v5.html` 即可，所有数据都在本地计算，不上传任何信息。
 
-旧版 `staircase-designer-v2.html`、`staircase-designer.html` 仍保留，可继续访问。
+旧版 `staircase-designer-v4.html`、`staircase-designer-v2.html`、`staircase-designer.html` 仍保留，可继续访问。
 
 ## 更新日志
+
+### v5.0（2026-08-12）
+
+- 新增 U 型楼梯休息平台形状选择：矩形 / 三角形，平面图与 3D 视图同步显示
+- 优化 U 型楼梯平台踏步绘制，转角表达更清晰
+
+完整更新说明见 [GitHub Release 页面](https://github.com/kawabonka/staircase-designer/releases/tag/v5.0.0)。
 
 ### v4.0（2026-08-12）
 
