@@ -6,13 +6,17 @@
 
 <https://kawabonka.github.io/staircase-designer/staircase-designer-v5.html>
 
-## 国内镜像
+## 国内下载镜像
 
-国内网络访问加速地址（始终同步到 main 分支最新版）：
+> 说明：以下镜像转发的是 GitHub raw 文件，浏览器直接打开会显示 HTML 源代码（这是正常现象）。请点击后右键“另存为”保存为 `.html` 文件，再双击本地打开使用。
 
 - jsDelivr 国内镜像（推荐）：<https://cdn.osyb.cn/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
 - jsDelivr 官方备用域名：<https://fastly.jsdelivr.net/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
 - GitHub 加速代理（备用）：<https://gh-proxy.com/https://raw.githubusercontent.com/kawabonka/staircase-designer/main/staircase-designer-v5.html>
+
+在线直接打开请使用 GitHub Pages 正式地址：<https://kawabonka.github.io/staircase-designer/staircase-designer-v5.html>
+
+网页预览（可正常渲染，访问速度取决于 GitHub）：<https://htmlpreview.github.io/?https://raw.githubusercontent.com/kawabonka/staircase-designer/main/staircase-designer-v5.html>
 
 ## 功能
 
