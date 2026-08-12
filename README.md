@@ -36,6 +36,7 @@
 - 新增页脚署名，导出 SVG 图纸同步带页脚
 - 新增国内镜像（花生壳托管），国内可直接打开使用
 - 新增导出 PDF 设计报告；优化平面图尺寸标注间距
+- 优化平面图短段尺寸标注（编号 + 图例表）；修正 L 型开洞尺寸建议方向
 
 完整更新说明见 [GitHub Release 页面](https://github.com/kawabonka/staircase-designer/releases/tag/v5.0.0)。
 

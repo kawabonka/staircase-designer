@@ -425,7 +425,8 @@ function compute(s){
   } else if(s.type==='U'){
     openRec = { shape:'rect', l: Math.round(Ulen + openMargin), w: Math.round(Uw + openMargin) };
   } else {
-    openRec = { shape:'L', l: Math.round(L1 + w + openMargin), w: Math.round(w + L2 + openMargin) };
+    /* L 型：长 = 第二跑 + 平台（人沿第二跑穿过洞口到 2F），宽 = 第一跑 + 平台 */
+    openRec = { shape:'L', l: Math.round(w + L2 + openMargin), w: Math.round(L1 + w + openMargin) };
   }
 
   return { H, N, hh, b, w, L, k, m, k2, L1, L2, platEl, platTop, platShape,
@@ -478,20 +479,39 @@ function arrow(x,y,dx,dy){ // small filled triangle at (x,y) pointing (dx,dy)
   return `${x},${y} ${x+L*Math.cos(a+2.6)},${y+L*Math.sin(a+2.6)} ${x+L*Math.cos(a-2.6)},${y+L*Math.sin(a-2.6)}`;
 }
 /* dimension drawing with explicit coords (already mapped) */
-function dH(svg, x1, x2, y, label, cls='dim', off=8, anchor='middle'){
+function dH(svg, x1, x2, y, label, cls='dim', off=8, anchor='middle', num=null){
   const yA=y-off, yB=y+off;
   svg += `<path d="M${x1},${yA} V${yB} M${x2},${yA} V${yB} M${x1},${y} H${x2}" class="dim" fill="none"/>`;
   svg += `<polygon points="${arrow(x1,y,-1,0)}" class="dim-f"/>`;
   svg += `<polygon points="${arrow(x2,y,1,0)}" class="dim-f"/>`;
-  svg += `<text x="${(x1+x2)/2}" y="${y-9}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
+  if(num!==null){  /* 编号置于标尺中间，描述入图例表 */
+    svg += `<text x="${(x1+x2)/2}" y="${y+3.5}" class="t-num" text-anchor="middle" paint-order="stroke" stroke="oklch(98% 0.005 250)" stroke-width="4">${num}</text>`;
+  } else {
+    svg += `<text x="${(x1+x2)/2}" y="${y-9}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
+  }
   return svg;
 }
-function dV(svg, y1, y2, x, label, cls='dim', off=8, anchor='start'){
+/* 图例表：编号 + 描述 + 数值（用于尺寸标注避免并列文字挤压） */
+function legend(svg, x, y, entries){
+  const rh=15, pad=5, nw=24, dw=60, vw=48;
+  const rows=entries.length;
+  const tw=nw+dw+vw+pad*2, th=rows*rh+pad*2+2;
+  svg += `<rect x="${x}" y="${y}" width="${tw}" height="${th}" rx="5" fill="oklch(98% 0.005 250/.92)" stroke="oklch(62% 0.02 240)" stroke-width="0.8"/>`;
+  entries.forEach(([n,desc,val],i)=>{
+    const yy=y+pad+12+i*rh;
+    svg += `<text x="${x+pad+nw/2}" y="${yy}" class="t-num" text-anchor="middle">${n}</text>`;
+    svg += `<text x="${x+pad+nw}" y="${yy}" class="t-leg">${desc}</text>`;
+    svg += `<text x="${x+tw-pad-2}" y="${yy}" class="t-leg" text-anchor="end">${val}</text>`;
+  });
+  return svg;
+}
+function dV(svg, y1, y2, x, label, cls='dim', off=8, anchor='start', pos='mid'){
   const xA=x-off, xB=x+off;
   svg += `<path d="M${xA},${y1} H${xB} M${xA},${y2} H${xB} M${x},${y1} V${y2}" class="dim" fill="none"/>`;
   svg += `<polygon points="${arrow(x,y1,0,-1)}" class="dim-f"/>`;
   svg += `<polygon points="${arrow(x,y2,0,1)}" class="dim-f"/>`;
-  svg += `<text x="${anchor==='end'?x-9:x+9}" y="${(y1+y2)/2+3}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
+  const ly = pos==='top' ? y1+13 : (pos==='bottom' ? y2-4 : (y1+y2)/2+3);
+  svg += `<text x="${anchor==='end'?x-9:x+9}" y="${ly}" class="t-dim ${cls}" text-anchor="${anchor}">${label}</text>`;
   return svg;
 }
 function dText(svg, x, y, text, cls='t-dim', anchor='middle'){ return svg+`<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${text}</text>`; }
@@ -765,7 +785,7 @@ function renderPlanU(d){
   const {L1,L2,w,b,hh,k,N,m,k2,platEl,platTop,gap,Uw,Ulen,lp,platShape}=d;
   const Lmax=Math.max(L1,L2), Lb=Math.min(L1,L2);
   const x2=w+gap;
-  const world=[-w*0.9, -w*1.4, Uw+w*0.9, Ulen+w*1.4];
+  const world=[-w*0.9, -w*2.4, Uw+w*0.9, Ulen+w*1.4];
   const F=fit(world, vw, vh, 36);
   const sx=F.sx, sy=F.sy;
   let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="平面图">
@@ -773,6 +793,8 @@ function renderPlanU(d){
       .t-lbl{font-size:13px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240);font-weight:600}
       .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
       .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
+      .t-num{font-size:12.5px;font-family:${MONO};fill:oklch(30% 0.02 240);font-weight:600}
+      .t-leg{font-size:11.5px;font-family:${MONO};fill:oklch(30% 0.02 240)}
       .dim{stroke:oklch(55% 0.02 240);stroke-width:1}.dim-f{fill:oklch(55% 0.02 240)}
       .run1{fill:oklch(96% 0.01 240);stroke:oklch(40% 0.02 240);stroke-width:1.4}
       .run2{fill:oklch(94% 0.04 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
@@ -826,14 +848,21 @@ function renderPlanU(d){
   svg = dText(svg, sx(x2+w/2), sy(L2/2)+4, `第二跑 ${k2} 级`, 't-lbl');
   svg = dText(svg, sx(Uw/2), sy(Lb+lp/2)+4, m>0?`平台踏步 ${m} 级`:`休息平台 ${fmt(platEl)}`, 't-lbl2');
 
-  /* 尺寸标注（全部在轮廓外） */
-  svg = dV(svg, sy(0), sy(L1), sx(0)-0.26*w, `第一跑 ${fmt(L1)}`, 'dim', 8, 'end');
-  svg = dV(svg, sy(0), sy(L2), sx(Uw)+0.26*w, `第二跑 ${fmt(L2)}`);
+  /* 尺寸标注（全部在轮廓外；短跑时标签移顶部避免挤压） */
+  const _rp1=sy(0)-sy(L1), _rp2=sy(0)-sy(L2);
+  svg = dV(svg, sy(0), sy(L1), sx(0)-0.26*w, `第一跑 ${fmt(L1)}`, 'dim', 8, 'end', _rp1<110?'top':'mid');
+  svg = dV(svg, sy(0), sy(L2), sx(Uw)+0.26*w, `第二跑 ${fmt(L2)}`, 'dim', 8, 'start', _rp2<110?'top':'mid');
   svg = dV(svg, sy(0), sy(Ulen), sx(Uw)+0.60*w, `总长 ${fmt(Ulen)}`);
-  svg = dH(svg, sx(0), sx(w), sy(-0.24*w), `净宽 ${fmt(w)}`, 'dim', 8);
-  svg = dH(svg, sx(x2), sx(Uw), sy(-0.24*w), `净宽 ${fmt(w)}`, 'dim', 8);
-  if(gap>0) svg = dH(svg, sx(w), sx(x2), sy(-0.24*w), `井 ${fmt(gap)}`, 'dim', 6);
-  svg = dH(svg, sx(0), sx(Uw), sy(-0.46*w), `总宽 ${fmt(Uw)}`);
+  /* 底部尺寸：恢复原位，标尺中间放编号，描述入图例表 */
+  svg = dH(svg, sx(0), sx(w), sy(-0.24*w), '', 'dim', 8, 'middle', '①');
+  if(gap>0) svg = dH(svg, sx(w), sx(x2), sy(-0.24*w), '', 'dim', 6, 'middle', '②');
+  svg = dH(svg, sx(x2), sx(Uw), sy(-0.24*w), '', 'dim', 8, 'middle', gap>0?'③':'②');
+  svg = dH(svg, sx(0), sx(Uw), sy(-0.55*w), '', 'dim', 8, 'middle', gap>0?'④':'③');
+  const uLeg=[['①','净宽',fmt(w)]];
+  if(gap>0) uLeg.push(['②','井',fmt(gap)]);
+  uLeg.push([gap>0?'③':'②','净宽',fmt(w)]);
+  uLeg.push([gap>0?'④':'③','总宽',fmt(Uw)]);
+  svg = legend(svg, sx(0), sy(-1.0*w), uLeg);
 
   svg += `</svg>`;
   return svg;
@@ -850,14 +879,22 @@ function renderPlan(d){
     const X=L1+w, Y=w+L2;
     world=[-w*0.9, -w*1.4, X+w*0.9, Y+w*1.4];
   }
-  const F=fit(world, vw, vh, 36);
-  const sx=F.sx, sy=F.sy;
+  let F=fit(world, vw, vh, 36);
+  let sx=F.sx, sy=F.sy;
+  /* 第一跑段过短时：底部尺寸改编号+图例表，需为其预留下边距重新适配 */
+  if(type==='L' && sx(L1)-sx(0) < 110){
+    world=[-w*0.9, -w*2.4, (L1+w)+w*0.9, (w+L2)+w*1.4];
+    F=fit(world, vw, vh, 36);
+    sx=F.sx; sy=F.sy;
+  }
   let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="平面图">
     <defs><style>
       .t-lbl{font-size:13px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240);font-weight:600}
       .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
       .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
       .t-dim.ok{fill:var(--ok,#1a7f37)} .t-dim.bad{fill:var(--bad,#c62828)}
+      .t-num{font-size:12.5px;font-family:${MONO};fill:oklch(30% 0.02 240);font-weight:600}
+      .t-leg{font-size:11.5px;font-family:${MONO};fill:oklch(30% 0.02 240)}
       .dim{stroke:oklch(55% 0.02 240);stroke-width:1}.dim-f{fill:oklch(55% 0.02 240)}
       .run1{fill:oklch(96% 0.01 240);stroke:oklch(40% 0.02 240);stroke-width:1.4}
       .run2{fill:oklch(94% 0.04 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
@@ -911,11 +948,24 @@ function renderPlan(d){
     svg += `<polygon points="${arrow(sx(L1+w/2), sy(w)-14, 0, 1)}" class="dim-f"/>`;
 
     svg = dText(svg,sx(L1+w/2), sy(w/2)+4, m>0 ? `平台踏步 ${m} 级` : `休息平台 ${fmt(platEl)}`, 't-lbl2');
-    /* 尺寸标注（全部在楼梯轮廓外；距离整体再外移 20% 避免重叠） */
-    svg = dH(svg, sx(0), sx(L1), sy(-0.26*w), `第一跑 ${k} 级 · ${fmt(L1)}`);
-    svg = dH(svg, sx(L1), sx(L1+w), sy(-0.26*w), `平台 ${fmt(w)}`);
-    svg = dH(svg, sx(0), sx(L1+w), sy(-0.43*w), `总长 ${fmt(L1+w)}`);
-    svg = dV(svg, sy(w+L2), sy(w), sx(L1+w)+0.09*w, `第二跑 ${k2} 级 · ${fmt(L2)}`);
+    /* 尺寸标注（全部在楼梯轮廓外；短段时标尺放编号、描述入图例表避免挤压） */
+    const _fp=sx(L1)-sx(0), _short=_fp<110;
+    if(_short){
+      svg = dH(svg, sx(0), sx(L1), sy(-0.26*w), '', 'dim', 8, 'middle', '①');
+      svg = dH(svg, sx(L1), sx(L1+w), sy(-0.26*w), '', 'dim', 8, 'middle', '②');
+      svg = dH(svg, sx(0), sx(L1+w), sy(-0.43*w), '', 'dim', 8, 'middle', '③');
+      svg = legend(svg, sx(0), sy(-1.0*w), [
+        ['①','第一跑',fmt(L1)],
+        ['②','平台',fmt(w)],
+        ['③','总长',fmt(L1+w)],
+      ]);
+    } else {
+      svg = dH(svg, sx(0), sx(L1), sy(-0.26*w), `第一跑 ${k} 级 · ${fmt(L1)}`);
+      svg = dH(svg, sx(L1), sx(L1+w), sy(-0.26*w), `平台 ${fmt(w)}`);
+      svg = dH(svg, sx(0), sx(L1+w), sy(-0.43*w), `总长 ${fmt(L1+w)}`);
+    }
+    const _sp2=sy(w)-sy(w+L2);
+    svg = dV(svg, sy(w+L2), sy(w), sx(L1+w)+0.09*w, _sp2<110?`第二跑 ${fmt(L2)}`:`第二跑 ${k2} 级 · ${fmt(L2)}`, 'dim', 8, 'start', _sp2<110?'top':'mid');
     svg = dV(svg, sy(0), sy(w+L2), sx(0)-0.22*w, `总宽 ${fmt(w+L2)}`, 'dim', 8, 'end');
     svg = dV(svg, sy(w), sy(0), sx(0)-0.11*w, `净宽 ${fmt(w)}`, 'dim', 5, 'end');
     svg = dH(svg, sx(L1), sx(L1+w), sy(w+L2)+0.18*w, `净宽 ${fmt(w)}`, 'dim', 10);
