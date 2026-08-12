@@ -75,6 +75,7 @@ aside{
 
 /* type segmented */
 .seg{ display:grid; grid-template-columns:1fr 1fr; gap:4px; background:var(--border); border-radius:9px; padding:4px }
+.seg3{ grid-template-columns:repeat(3,1fr) }
 .seg4{ grid-template-columns:repeat(4,1fr) }
 .seg4 label{ padding:6px 0; font-size:12px }
 .seg label{
@@ -134,6 +135,12 @@ main{
 .draw svg{ position:absolute; top:0; left:0; width:100%; height:100% }
 .draw.grabbing{ cursor:grabbing }
 .draw-hint{ position:absolute; right:12px; bottom:10px; z-index:2; font-size:10.5px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:2px 8px; pointer-events:none; opacity:.9; box-shadow:0 1px 3px rgb(0 0 0/.06) }
+.panel-tools{ display:inline-flex; align-items:center; gap:6px }
+.max-btn.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft) }
+main.main-max{ grid-template-columns:1fr }
+main.main-max .panel{ display:none }
+main.main-max .panel.max{ display:block; grid-column:1/-1; grid-row:1/-1 }
+main.main-max .panel.max .draw{ min-height:calc(100vh - 220px) }
 .zbar{ display:inline-flex; gap:3px }
 .zbtn{ width:24px; height:22px; border:1px solid var(--border); background:var(--surface); color:var(--muted); border-radius:5px; font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color .12s,color .12s,background .12s }
 .zbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft) }
@@ -189,9 +196,10 @@ table.sch tr.last td{ border-bottom:none }
 <aside data-od-id="params-panel">
   <section class="sect">
     <h2>楼梯类型 <span class="hint">Type</span></h2>
-    <div class="seg">
+    <div class="seg seg3">
       <label><input type="radio" name="type" value="straight" checked><span>一字型</span></label>
-      <label><input type="radio" name="type" value="L"><span>L 型转角</span></label>
+      <label><input type="radio" name="type" value="L"><span>L 型</span></label>
+      <label><input type="radio" name="type" value="U"><span>U 型</span></label>
     </div>
   </section>
 
@@ -221,10 +229,15 @@ table.sch tr.last td{ border-bottom:none }
   </section>
 
   <section class="sect" id="l-ctrl" style="display:none">
-    <h2>L 型转角 <span class="hint">自定义</span></h2>
+    <h2>L / U 型转角 <span class="hint">自定义</span></h2>
     <label class="ctl">
       <span class="ctl-lbl"><span>第一跑级数 <em class="k">k</em></span><span class="ctl-val" id="val-k"></span></span>
       <input type="range" data-k="k" min="2" max="10" step="1" value="9">
+    </label>
+    <label class="ctl" id="gap-ctl" style="display:none">
+      <span class="ctl-lbl"><span>梯井宽 <em class="k">g</em></span><span class="ctl-val" id="val-gap"></span></span>
+      <input type="range" data-k="gap" min="0" max="500" step="10" value="100">
+      <div class="note">两跑之间的空隙（梯井），0 表示贴在一起</div>
     </label>
     <div class="ctl">
       <span class="ctl-lbl"><span>转角平台踏步数</span></span>
@@ -235,7 +248,7 @@ table.sch tr.last td{ border-bottom:none }
         <label><input type="radio" name="platSteps" value="3"><span>3 级</span></label>
       </div>
     </div>
-    <div class="ctl">
+    <div class="ctl" id="plat-shape-ctl">
       <span class="ctl-lbl"><span>平台形状</span></span>
       <div class="seg">
         <label><input type="radio" name="platShape" value="rect" checked><span>矩形</span></label>
@@ -288,19 +301,28 @@ table.sch tr.last td{ border-bottom:none }
 <main data-od-id="views">
   <section class="panel" data-od-id="view-plan">
     <div class="panel-head"><span>平面图 · 顶视 <span class="tag" id="plan-tag">一字型</span></span>
-      <span class="zbar" data-zview="plan-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+      <span class="panel-tools">
+        <span class="zbar" data-zview="plan-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+        <button class="zbtn max-btn" data-max="plan-view" title="最大化 / 恢复">⛶</button>
+      </span>
     </div>
     <div class="panel-body"><div class="draw draw--plan" id="plan-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
   </section>
   <section class="panel" data-od-id="view-section">
     <div class="panel-head"><span>剖面图 · 净空校验 <span class="tag">含 1.85m 人体比例</span></span>
-      <span class="zbar" data-zview="section-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+      <span class="panel-tools">
+        <span class="zbar" data-zview="section-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+        <button class="zbtn max-btn" data-max="section-view" title="最大化 / 恢复">⛶</button>
+      </span>
     </div>
     <div class="panel-body"><div class="draw" id="section-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
   </section>
   <section class="panel" data-od-id="view-iso">
     <div class="panel-head"><span>3D 轴测示意 <span class="tag">示意</span></span>
-      <span class="zbar" data-zview="iso-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+      <span class="panel-tools">
+        <span class="zbar" data-zview="iso-view"><button class="zbtn" data-z="out" title="缩小">−</button><button class="zbtn" data-z="in" title="放大">＋</button><button class="zbtn fit" data-z="fit" title="适应窗口">适应</button></span>
+        <button class="zbtn max-btn" data-max="iso-view" title="最大化 / 恢复">⛶</button>
+      </span>
     </div>
     <div class="panel-body"><div class="draw draw--iso" id="iso-view"></div><span class="draw-hint">拖动平移 · Ctrl+滚轮缩放 · 双击放大</span></div>
   </section>
@@ -325,7 +347,7 @@ const MONO='ui-monospace,Menlo,monospace';
 /* ── state ── */
 const S = {
   type:'straight', H_clear:2400, t:120, h:167, b:270, w:1000, k:9, P:1850, ov:0,
-  platSteps:0, platShape:'rect', unit:'mm'
+  platSteps:0, platShape:'rect', unit:'mm', gap:100
 };
 let lastType = null;
 
@@ -343,6 +365,11 @@ function compute(s){
   const k2 = N - k - m;                              // 第二跑级数
   const L1 = (k-1) * b;                              // 第一跑投影长
   const L2 = (k2-1) * b;                             // 第二跑投影长
+  const platShape = s.type==='U' ? 'rect' : (s.platShape||'rect');  // U 型平台恒为矩形
+  const gap = s.type==='U' ? clamp(Math.round(s.gap||100), 0, 500) : 0;  // 梯井宽
+  const Uw = 2*w + gap;                              // U 型总宽（两跑+梯井）
+  const lp = w;                                      // 休息平台进深
+  const Ulen = Math.max(L1, L2) + lp;                // U 型总长（沿梯跑方向）
   const platEl = k * hh;                             // 休息平台起步标高
   const platTop = (k + m) * hh;                      // 平台顶标高（第二跑起步）
   const R = Math.max(2200, s.P + 350);               // 需求净空
@@ -357,7 +384,7 @@ function compute(s){
   const openLen = L - ov1;                           // 洞口长度（沿梯段）
 
   /* 第一跑逐级净高检测：每级距楼板底净空 = 净高 − 已爬升高度 */
-  const run1N = (s.type==='L') ? k : Math.max(1, N-1);
+  const run1N = (s.type==='L' || s.type==='U') ? k : Math.max(1, N-1);
   const run1Steps = [];
   let run1Safe = 0, run1Bad = 0, run1FirstBad = 0;
   for(let i=1;i<=run1N;i++){
@@ -377,15 +404,17 @@ function compute(s){
   if(s.type==='straight'){
     const openL = Math.max(1200, Math.round(L - run1Safe*b + 300));  // 净高安全线 → 梯段顶端 + 上端余量
     openRec = { shape:'rect', l: openL, w: Math.round(w + openMargin) };
+  } else if(s.type==='U'){
+    openRec = { shape:'rect', l: Math.round(Ulen + openMargin), w: Math.round(Uw + openMargin) };
   } else {
     openRec = { shape:'L', l: Math.round(L1 + w + openMargin), w: Math.round(w + L2 + openMargin) };
   }
 
-  return { H, N, hh, b, w, L, k, m, k2, L1, L2, platEl, platTop, platShape:s.platShape||'rect',
+  return { H, N, hh, b, w, L, k, m, k2, L1, L2, platEl, platTop, platShape,
            R, P:s.P, h:s.h, platClear, ovMax1, ovMax2, ov1, ov2, elevAt,
            edge1, edge2, openLen, H_clear:s.H_clear, t:s.t, type:s.type,
            run1N, run1Steps, run1Safe, run1Bad, run1FirstBad, run1NeedOpen,
-           openRec };
+           openRec, gap, Uw, Ulen, lp };
 }
 
 /* ── checks ── */
@@ -405,7 +434,7 @@ function buildChecks(d){
       ? `第 ${d.run1Safe+1} 级起需洞口覆盖；当前悬挑 ${fmt(d.ov1)} ${U()}`
       : `该级净高 ${fmt(d.run1Steps[d.run1FirstBad-1].hr)} ${U()} < ${fmt(d.R)}，需增大洞口（减小悬挑）`
   });
-  if(d.type==='L'){
+  if(d.type==='L' || d.type==='U'){
     c.push({ok:true, mark:'✓', t:`休息平台位于洞口覆盖内`, d:`平台标高 ${fmt(d.platEl)}~${fmt(d.platTop)}（踏步 ${d.m} 级），距楼板底 ${fmt(d.platClear)}；须保持洞口覆盖平台`});
     c.push({ok:d.k2>=2, warn:true, mark:'', t:`第二跑级数 ${d.k2} 级`, d:'建议 ≥ 2 级，可调小第一跑或平台踏步数'});
   }
@@ -712,7 +741,79 @@ function renderSectionL(d){
 }
 
 /* ── Plan ── */
+/* ── Plan: U 型（两跑平行 + 顶部休息平台） ── */
+function renderPlanU(d){
+  const vw=760, vh=500;
+  const {L1,L2,w,b,hh,k,N,m,k2,platEl,platTop,gap,Uw,Ulen,lp}=d;
+  const Lmax=Math.max(L1,L2), Lb=Math.min(L1,L2);
+  const x2=w+gap;
+  const world=[-w*0.9, -w*1.4, Uw+w*0.9, Ulen+w*1.4];
+  const F=fit(world, vw, vh, 36);
+  const sx=F.sx, sy=F.sy;
+  let svg=`<svg viewBox="0 0 ${vw} ${vh}" style="aspect-ratio:${vw}/${vh}" role="img" aria-label="平面图">
+    <defs><style>
+      .t-lbl{font-size:13px;font-family:-apple-system,sans-serif;fill:oklch(30% 0.02 240);font-weight:600}
+      .t-lbl2{font-size:11.5px;font-family:-apple-system,sans-serif;fill:oklch(50% 0.02 240)}
+      .t-dim{font-size:12px;font-family:${MONO};fill:oklch(40% 0.02 240)}
+      .dim{stroke:oklch(55% 0.02 240);stroke-width:1}.dim-f{fill:oklch(55% 0.02 240)}
+      .run1{fill:oklch(96% 0.01 240);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .run2{fill:oklch(94% 0.04 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .plat{fill:oklch(96% 0.02 145);stroke:oklch(40% 0.02 240);stroke-width:1.4}
+      .step{stroke:oklch(70% 0.02 240);stroke-width:0.8}
+      .open{fill:none;stroke:oklch(52% 0.16 145);stroke-width:1.5;stroke-dasharray:8 5}
+      .arr{stroke:oklch(35% 0.02 240);stroke-width:1.6;fill:none}
+    </style></defs>`;
+
+  /* 梯井 */
+  if(gap>0){
+    svg += `<rect x="${sx(w)}" y="${sy(Ulen)}" width="${sx(w+gap)-sx(w)}" height="${sy(0)-sy(Ulen)}" fill="oklch(50% 0.02 240/.05)" stroke="oklch(70% 0.02 240)" stroke-dasharray="4 3"/>`;
+    svg = dText(svg, sx(w+gap/2), sy(Ulen/2), '梯井', 't-lbl2');
+  }
+
+  /* 休息平台（含平台踏步 m） */
+  if(m>0){
+    for(let j=0;j<m;j++){
+      const z0=Lb+j*(lp/m), z1=Lb+(j+1)*(lp/m);
+      svg += `<rect x="${sx(0)}" y="${sy(z1)}" width="${sx(Uw)-sx(0)}" height="${sy(z0)-sy(z1)}" class="plat"/>`;
+    }
+  } else {
+    svg += `<rect x="${sx(0)}" y="${sy(Lb+lp)}" width="${sx(Uw)-sx(0)}" height="${sy(Lb)-sy(Lb+lp)}" class="plat"/>`;
+  }
+
+  /* 第一跑（左列，上行） */
+  svg += `<rect x="${sx(0)}" y="${sy(L1)}" width="${sx(w)-sx(0)}" height="${sy(0)-sy(L1)}" class="run1"/>`;
+  for(let i=1;i<k;i++){ const y=i*b; svg += `<path d="M${sx(0)},${sy(y)} H${sx(w)}" class="step"/>`; }
+  /* 第二跑（右列，下行） */
+  svg += `<rect x="${sx(x2)}" y="${sy(L2)}" width="${sx(x2+w)-sx(x2)}" height="${sy(0)-sy(L2)}" class="run2"/>`;
+  for(let i=1;i<k2;i++){ const y=i*b; svg += `<path d="M${sx(x2)},${sy(y)} H${sx(x2+w)}" class="step"/>`; }
+
+  /* 洞口轮廓 */
+  svg += `<path d="M${sx(0)},${sy(Ulen)} H${sx(Uw)} V${sy(0)} H${sx(0)} Z" class="open"/>`;
+
+  /* 箭头 + 跑名 */
+  svg += `<path d="M${sx(w/2)},${sy(0)+8} V${sy(L1)-12}" class="arr"/>`;
+  svg += `<polygon points="${arrow(sx(w/2), sy(L1)-12, 0, -1)}" class="dim-f"/>`;
+  svg = dText(svg, sx(w/2), sy(L1/2)+4, `第一跑 ${k} 级`, 't-lbl');
+  svg += `<path d="M${sx(x2+w/2)},${sy(L2)-8} V${sy(0)+12}" class="arr"/>`;
+  svg += `<polygon points="${arrow(sx(x2+w/2), sy(0)+12, 0, 1)}" class="dim-f"/>`;
+  svg = dText(svg, sx(x2+w/2), sy(L2/2)+4, `第二跑 ${k2} 级`, 't-lbl');
+  svg = dText(svg, sx(Uw/2), sy(Lb+lp/2)+4, m>0?`平台踏步 ${m} 级`:`休息平台 ${fmt(platEl)}`, 't-lbl2');
+
+  /* 尺寸标注（全部在轮廓外） */
+  svg = dV(svg, sy(0), sy(L1), sx(0)-0.18*w, `第一跑 ${fmt(L1)}`, 'dim', 8, 'end');
+  svg = dV(svg, sy(0), sy(L2), sx(Uw)+0.18*w, `第二跑 ${fmt(L2)}`);
+  svg = dV(svg, sy(0), sy(Ulen), sx(Uw)+0.42*w, `总长 ${fmt(Ulen)}`);
+  svg = dH(svg, sx(0), sx(w), sy(-0.2*w), `净宽 ${fmt(w)}`, 'dim', 8);
+  svg = dH(svg, sx(x2), sx(Uw), sy(-0.2*w), `净宽 ${fmt(w)}`, 'dim', 8);
+  if(gap>0) svg = dH(svg, sx(w), sx(x2), sy(-0.2*w), `井 ${fmt(gap)}`, 'dim', 6);
+  svg = dH(svg, sx(0), sx(Uw), sy(-0.38*w), `总宽 ${fmt(Uw)}`);
+
+  svg += `</svg>`;
+  return svg;
+}
+
 function renderPlan(d){
+  if(d.type==='U') return renderPlanU(d);
   const vw=760, vh=500;
   const {type,L,L1,L2,w,b,hh,k,N,m,k2,platShape,platEl}=d;
   let world;
@@ -802,10 +903,20 @@ function isoX(x,z,y){ return (x-z)*ISO_C; }
 function isoY(x,z,y){ return (x+z)*ISO_S - y; }
 function renderIso(d){
   const vw=720, vh=520;
-  const {type,L,L1,L2,w,b,hh,k,N,H,t,m,k2,platTop,platShape,platEl}=d;
+  const {type,L,L1,L2,w,b,hh,k,N,H,t,m,k2,platTop,platShape,platEl,gap,Uw,Ulen,lp}=d;
   const boxes=[], tris=[], lb=[];
   if(type==='straight'){
     for(let j=0;j<N-1;j++) boxes.push({x0:j*b,z0:0,y0:j*hh, x1:(j+1)*b,z1:w,y1:(j+1)*hh});
+  } else if(type==='U'){
+    /* U 型：第一跑（左）→ 顶部平台 → 第二跑（右，自平台下行到 2F） */
+    for(let j=0;j<k-1;j++) boxes.push({x0:0,z0:j*b,y0:j*hh, x1:w,z1:(j+1)*b,y1:(j+1)*hh});
+    const Lb=Math.min(L1,L2);
+    if(m>0){
+      for(let j=0;j<m;j++) boxes.push({x0:0,z0:Lb+j*(lp/m),y0:platEl+j*hh, x1:Uw,z1:Lb+(j+1)*(lp/m),y1:platEl+(j+1)*hh});
+    } else {
+      boxes.push({x0:0,z0:Lb,y0:0, x1:Uw,z1:Lb+lp,y1:platEl});
+    }
+    for(let j=0;j<k2-1;j++) boxes.push({x0:w+gap,z0:j*b,y0:platTop+(k2-2-j)*hh, x1:Uw,z1:(j+1)*b,y1:platTop+(k2-1-j)*hh});
   } else {
     for(let j=0;j<k-1;j++) boxes.push({x0:j*b,z0:0,y0:j*hh, x1:(j+1)*b,z1:w,y1:(j+1)*hh});
     if(platShape==='tri'){
@@ -826,16 +937,24 @@ function renderIso(d){
     }
     for(let j=0;j<k2-1;j++) boxes.push({x0:L1,z0:w+j*b,y0:platTop+j*hh, x1:L1+w,z1:w+(j+1)*b,y1:platTop+(j+1)*hh});
   }
-  const slabX1 = type==='straight' ? L : L1+w;
-  const slabZ1 = type==='straight' ? w : w+L2;
+  const slabX1 = type==='straight' ? L : (type==='U' ? Uw : L1+w);
+  const slabZ1 = type==='straight' ? w : (type==='U' ? Ulen : w+L2);
 
   /* world bounds */
   let x0=0,x1=slabX1,z0=0,z1=slabZ1,y0=0,y1=H;
   boxes.forEach(b=>{ x0=Math.min(x0,b.x0);x1=Math.max(x1,b.x1);z0=Math.min(z0,b.z0);z1=Math.max(z1,b.z1);y0=Math.min(y0,b.y0);y1=Math.max(y1,b.y1); });
-  const xs0=isoX(x0,z0,0), xs1=isoX(x1,z1,0), ys0=isoY(x0,z0,y1), ys1=isoY(x1,z1,0);
-  const ww=xs1-xs0, wh=ys0-ys1;
-  const scale=Math.min((vw-56)/ww,(vh-40)/wh);
-  const ox=(vw-ww*scale)/2 - xs0*scale, oy=vh/2 + (ys0+ys1)*scale/2;
+  /* iso 投影包围盒（含地面边距，世界角点投影后取 min/max） */
+  let _minX=Infinity,_maxX=-Infinity,_minY=Infinity,_maxY=-Infinity;
+  for(const _x of [x0-0.6*w, x1+0.6*w]) for(const _z of [z0-0.6*w, z1+0.6*w]) for(const _y of [0,y1]){
+    const _ix=isoX(_x,_z,_y), _iy=isoY(_x,_z,_y);
+    if(_ix<_minX)_minX=_ix; if(_ix>_maxX)_maxX=_ix;
+    if(_iy<_minY)_minY=_iy; if(_iy>_maxY)_maxY=_iy;
+  }
+  const ww=_maxX-_minX, wh=_maxY-_minY;
+  const s=Math.min((vw-56)/ww,(vh-40)/wh);
+  const scale=-s;   // 保持现有投影方向（负缩放把 isoY 翻转成屏幕向上）
+  const ox=vw/2 + (_minX+_maxX)*s/2;
+  const oy=vh/2 - (_minY+_maxY)*s/2;
   const PX=(x,z,y)=>ox+(isoX(x,z,y))*scale, PY=(x,z,y)=>oy-(isoY(x,z,y))*scale;
   const poly=(pts)=>pts.map(p=>PX(p[0],p[1],p[2]).toFixed(1)+','+PY(p[0],p[1],p[2]).toFixed(1)).join(' ');
 
@@ -890,13 +1009,20 @@ function renderIso(d){
   /* opening outline on slab top */
   if(type==='straight'){
     svg+=`<polygon points="${poly([[0,0,H],[L,0,H],[L,w,H],[0,w,H]])}" class="open"/>`;
+  } else if(type==='U'){
+    svg+=`<polygon points="${poly([[0,0,H],[Uw,0,H],[Uw,Ulen,H],[0,Ulen,H]])}" class="open"/>`;
   } else if(platShape==='tri'){
     svg+=`<polygon points="${poly([[0,0,H],[L1,0,H],[L1+w,w,H],[L1+w,w+L2,H],[L1,w+L2,H],[L1,w,H],[0,w,H]])}" class="open"/>`;
   } else {
     svg+=`<polygon points="${poly([[0,0,H],[L1,0,H],[L1,w,H],[L1+w,w,H],[L1+w,w+L2,H],[L1,w+L2,H],[L1,w,H],[0,w,H]])}" class="open"/>`;
   }
   /* labels */
-  if(type==='L'){
+  if(type==='U'){
+    const Lb=Math.min(L1,L2);
+    svg += `<text x="${PX(w*0.4,0.3*L1,H)}" y="${PY(w*0.4,0.3*L1,H)-6}" class="t-dim" text-anchor="middle">第一跑 ${k} 级</text>`;
+    svg += `<text x="${PX(w+gap+w*0.6,0.3*L2,H)}" y="${PY(w+gap+w*0.6,0.3*L2,H)-6}" class="t-dim" text-anchor="middle">第二跑 ${k2} 级</text>`;
+    svg += `<text x="${PX(Uw/2,Lb+lp/2,H)}" y="${PY(Uw/2,Lb+lp/2,H)+14}" class="t-dim" text-anchor="middle">平台踏步 ${m} 级</text>`;
+  } else if(type==='L'){
     svg += `<text x="${PX(L1/2,w*0.4,H)}" y="${PY(L1/2,w*0.4,H)-6}" class="t-dim" text-anchor="middle">第一跑 ${k} 级</text>`;
     svg += `<text x="${PX(L1+w*0.6,w+L2/2,H)}" y="${PY(L1+w*0.6,w+L2/2,H)-6}" class="t-dim" text-anchor="middle">第二跑 ${k2} 级</text>`;
     svg += `<text x="${PX(L1+w/2,w*0.3,H)}" y="${PY(L1+w/2,w*0.3,H)+14}" class="t-dim" text-anchor="middle">平台踏步 ${m} 级</text>`;
@@ -945,15 +1071,16 @@ function renderSchedule(d){
 /* ── render all ── */
 function render(){
   const d=compute(S);
-  const isL = S.type==='L';
-  $('plan-tag').textContent = isL ? 'L 型转角' : '一字型';
-  $('sch-tag').textContent = isL ? `L 型 · ${d.k}/${d.N-d.k} 级` : `一字型 · ${d.N} 级`;
+  const isCorner = S.type==='L' || S.type==='U';
+  const typeName = S.type==='U' ? 'U 型转角' : (S.type==='L' ? 'L 型转角' : '一字型');
+  $('plan-tag').textContent = typeName;
+  $('sch-tag').textContent = isCorner ? `${S.type==='U'?'U':'L'} 型 · ${d.k}/${d.N-d.k} 级` : `一字型 · ${d.N} 级`;
   $('sum-h').innerHTML = `${fmt(d.H)} <small>净高+板厚</small>`;
   $('sum-n').textContent = `${d.N} 级`;
   $('sum-hh').textContent = `${fmt(d.hh)} ${U()}`;
   $('sum-bh').textContent = `${fmt(d.b)} × ${fmt(d.hh)}`;
   $('sum-l').innerHTML = `${fmt(d.L)} <small>${U()}</small>`;
-  if(isL){
+  if(isCorner){
     $('sum-l-wrap').style.display='block';
     $('sum-lr').innerHTML = `${d.k} 级 + ${d.m} 级 + ${d.k2} 级`;
   } else $('sum-l-wrap').style.display='none';
@@ -963,10 +1090,10 @@ function render(){
 
   $('sum-r').innerHTML = `${fmt(d.R)} <small>${U()}</small>`;
   $('sum-open').innerHTML = `${fmt(d.openLen)} <small>${U()}</small>`;
-  $('ov-note').textContent = `安全悬挑上限 ${fmt(isL?Math.min(d.ovMax1,d.ovMax2):d.ovMax1)} ${U()}`;
+  $('ov-note').textContent = `安全悬挑上限 ${fmt(isCorner?Math.min(d.ovMax1,d.ovMax2):d.ovMax1)} ${U()}`;
 
   $('plan-view').innerHTML = renderPlan(d);
-  $('section-view').innerHTML = isL ? renderSectionL(d) : renderSection(d);
+  $('section-view').innerHTML = isCorner ? renderSectionL(d) : renderSection(d);
   $('iso-view').innerHTML = renderIso(d);
   $('schedule').innerHTML = renderSchedule(d);
 
@@ -978,13 +1105,15 @@ function render(){
   const worst = d.H_clear>=d.R;
   let bad=false;
   if(d.ov1>0 && d.edge1!==null && d.edge1<d.R) bad=true;
-  if(isL && d.ov2>0 && d.edge2!==null && d.edge2<d.R) bad=true;
+  if(isCorner && d.ov2>0 && d.edge2!==null && d.edge2<d.R) bad=true;
   const dot=$('head-dot'), txt=$('head-txt');
   if(!worst || bad){ dot.className='dot bad'; txt.textContent = bad ? '净空不足 · 会撞头' : '净高不足 · 会撞头'; }
   else { dot.className='dot ok'; txt.textContent = '净空满足 · 需求 ' + fmt(d.R) + ' ' + U(); }
 
-  /* L control */
-  $('l-ctrl').style.display = isL ? 'block':'none';
+  /* L/U control */
+  $('l-ctrl').style.display = isCorner ? 'block':'none';
+  $('gap-ctl').style.display = S.type==='U' ? 'block':'none';
+  $('plat-shape-ctl').style.display = S.type==='U' ? 'none':'block';
   const kIn=document.querySelector('input[data-k="k"]');
   kIn.max = d.N-2;
   if(S.k>d.N-2) S.k=d.N-2;
@@ -996,7 +1125,7 @@ function render(){
 
   /* ov slider max */
   const ovIn=document.querySelector('input[data-k="ov"]');
-  const ovMax = Math.round(isL? Math.max(d.L1,d.L2) : d.L);
+  const ovMax = Math.round(isCorner? Math.max(d.L1,d.L2) : d.L);
   ovIn.max = Math.max(0, ovMax);
   if(S.ov>ovMax){ S.ov=ovMax; ovIn.value=ovMax; }
   $('val-ov').textContent = `${fmt(S.ov)} ${U()}`;
@@ -1100,7 +1229,7 @@ document.querySelectorAll('input[name="platShape"]').forEach(r=>{
 
 /* 单位切换 mm / 英寸 */
 function setAllValLabels(){
-  ['H_clear','t','h','b','w','k','P','ov'].forEach(k=>{
+  ['H_clear','t','h','b','w','k','P','ov','gap'].forEach(k=>{
     const el=document.getElementById('val-'+k);
     if(!el) return;
     el.textContent = k==='k' ? (S.k+' 级') : (fmt(S[k])+' '+U());
@@ -1111,6 +1240,26 @@ $('unit-badge').addEventListener('click', ()=>{
   $('unit-badge').textContent = '单位 ' + U();
   setAllValLabels();
   render();
+});
+
+/* 视图最大化 / 恢复 */
+function toggleMaxView(id){
+  const main=document.querySelector('main');
+  const panel=document.getElementById(id).closest('.panel');
+  if(!panel) return;
+  const active=panel.classList.contains('max');
+  document.querySelectorAll('.panel.max').forEach(p=>p.classList.remove('max'));
+  main.classList.remove('main-max');
+  document.querySelectorAll('.max-btn').forEach(b=>{ b.classList.remove('active'); b.textContent='⛶'; b.title='最大化 / 恢复'; });
+  if(!active){
+    panel.classList.add('max');
+    main.classList.add('main-max');
+    const btn=document.querySelector('.max-btn[data-max="'+id+'"]');
+    if(btn){ btn.classList.add('active'); btn.textContent='⤡'; btn.title='恢复视图'; }
+  }
+}
+document.querySelectorAll('.max-btn').forEach(b=>{
+  b.addEventListener('click', ()=>toggleMaxView(b.dataset.max));
 });
 
 /* 顶部跳转：滚动侧栏到对应区块 */
