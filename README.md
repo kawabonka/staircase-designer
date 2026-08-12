@@ -6,6 +6,13 @@
 
 <https://kawabonka.github.io/staircase-designer/staircase-designer-v5.html>
 
+## 国内镜像
+
+国内网络访问加速地址（始终同步到 main 分支最新版）：
+
+- jsDelivr 官方 CDN 镜像（推荐）：<https://cdn.jsdelivr.net/gh/kawabonka/staircase-designer@main/staircase-designer-v5.html>
+- GitHub 加速代理（备用）：<https://ghproxy.net/https://raw.githubusercontent.com/kawabonka/staircase-designer/main/staircase-designer-v5.html>
+
 ## 功能
 
 - 楼梯类型选择（一字型 / L 型转角 / U 型转角）
@@ -31,6 +38,7 @@
 
 - 新增 U 型楼梯休息平台形状选择：矩形 / 三角形，平面图与 3D 视图同步显示
 - 优化 U 型楼梯平台踏步绘制，转角表达更清晰
+- 新增页脚署名，导出 SVG 图纸同步带页脚
 
 完整更新说明见 [GitHub Release 页面](https://github.com/kawabonka/staircase-designer/releases/tag/v5.0.0)。
 

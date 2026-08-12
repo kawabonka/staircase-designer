@@ -30,7 +30,7 @@ body{
   background:var(--bg); color:var(--fg);
   font-family:var(--font-body); font-size:14px; line-height:1.5;
   display:grid; grid-template-columns:300px 1fr;
-  grid-template-rows:auto 1fr;
+  grid-template-rows:auto 1fr auto;
   height:100vh; height:100dvh;
   overflow:hidden;
 }
@@ -61,6 +61,7 @@ header .pipe{ width:1px; height:22px; background:var(--border) }
 .head-exports{ display:flex; gap:6px }
 .hbtn{ font-size:12px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-family:var(--font-body); white-space:nowrap }
 .hbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--surface) }
+footer{ grid-column:1/-1; padding:5px 16px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); background:var(--surface); text-align:center; letter-spacing:.3px }
 
 /* ── Sidebar ────────────────────────────── */
 aside{
@@ -332,6 +333,8 @@ table.sch tr.last td{ border-bottom:none }
   </section>
 </main>
 
+<footer data-od-id="app-footer">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</footer>
+
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -365,7 +368,7 @@ function compute(s){
   const k2 = N - k - m;                              // 第二跑级数
   const L1 = (k-1) * b;                              // 第一跑投影长
   const L2 = (k2-1) * b;                             // 第二跑投影长
-  const platShape = s.type==='U' ? 'rect' : (s.platShape||'rect');  // U 型平台恒为矩形
+  const platShape = s.platShape||'rect';
   const gap = s.type==='U' ? clamp(Math.round(s.gap||100), 0, 500) : 0;  // 梯井宽
   const Uw = 2*w + gap;                              // U 型总宽（两跑+梯井）
   const lp = w;                                      // 休息平台进深
@@ -744,7 +747,7 @@ function renderSectionL(d){
 /* ── Plan: U 型（两跑平行 + 顶部休息平台） ── */
 function renderPlanU(d){
   const vw=760, vh=500;
-  const {L1,L2,w,b,hh,k,N,m,k2,platEl,platTop,gap,Uw,Ulen,lp}=d;
+  const {L1,L2,w,b,hh,k,N,m,k2,platEl,platTop,gap,Uw,Ulen,lp,platShape}=d;
   const Lmax=Math.max(L1,L2), Lb=Math.min(L1,L2);
   const x2=w+gap;
   const world=[-w*0.9, -w*1.4, Uw+w*0.9, Ulen+w*1.4];
@@ -770,11 +773,20 @@ function renderPlanU(d){
     svg = dText(svg, sx(w+gap/2), sy(Ulen/2), '梯井', 't-lbl2');
   }
 
-  /* 休息平台（含平台踏步 m） */
+  /* 休息平台（平台踏步 m：矩形=横向分条；三角形=自左上角斜向抬高） */
   if(m>0){
-    for(let j=0;j<m;j++){
-      const z0=Lb+j*(lp/m), z1=Lb+(j+1)*(lp/m);
-      svg += `<rect x="${sx(0)}" y="${sy(z1)}" width="${sx(Uw)-sx(0)}" height="${sy(z0)-sy(z1)}" class="plat"/>`;
+    if(platShape==='tri'){
+      for(let j=1;j<=m;j++){
+        const x0=(j-1)*Uw/m, x1=j*Uw/m;
+        svg += `<polygon points="${sx(0)},${sy(Lb+lp)} ${sx(x0)},${sy(Lb)} ${sx(x1)},${sy(Lb)}" class="plat"/>`;
+      }
+      for(let j=1;j<m;j++){ const x=j*Uw/m; svg += `<path d="M${sx(0)},${sy(Lb+lp)} L${sx(x)},${sy(Lb)}" class="step"/>`; }
+    } else {
+      for(let j=0;j<m;j++){
+        const x0=j*Uw/m, x1=(j+1)*Uw/m;
+        svg += `<rect x="${sx(x0)}" y="${sy(Lb+lp)}" width="${sx(x1)-sx(x0)}" height="${sy(Lb)-sy(Lb+lp)}" class="plat"/>`;
+      }
+      for(let j=1;j<m;j++){ const x=j*Uw/m; svg += `<path d="M${sx(x)},${sy(Lb)} V${sy(Lb+lp)}" class="step"/>`; }
     }
   } else {
     svg += `<rect x="${sx(0)}" y="${sy(Lb+lp)}" width="${sx(Uw)-sx(0)}" height="${sy(Lb)-sy(Lb+lp)}" class="plat"/>`;
@@ -912,7 +924,12 @@ function renderIso(d){
     for(let j=0;j<k-1;j++) boxes.push({x0:0,z0:j*b,y0:j*hh, x1:w,z1:(j+1)*b,y1:(j+1)*hh});
     const Lb=Math.min(L1,L2);
     if(m>0){
-      for(let j=0;j<m;j++) boxes.push({x0:0,z0:Lb+j*(lp/m),y0:platEl+j*hh, x1:Uw,z1:Lb+(j+1)*(lp/m),y1:platEl+(j+1)*hh});
+      if(platShape==='tri'){
+        const A=[0,Lb+lp];
+        for(let j=1;j<=m;j++){ const B=[(j-1)*Uw/m,Lb], C=[j*Uw/m,Lb]; tris.push({A,B,C,y0:platEl+(j-1)*hh,y1:platEl+j*hh,key:Uw+Lb}); }
+      } else {
+        for(let j=0;j<m;j++) boxes.push({x0:j*Uw/m,z0:Lb,y0:platEl+j*hh, x1:(j+1)*Uw/m,z1:Lb+lp,y1:platEl+(j+1)*hh});
+      }
     } else {
       boxes.push({x0:0,z0:Lb,y0:0, x1:Uw,z1:Lb+lp,y1:platEl});
     }
@@ -1113,7 +1130,7 @@ function render(){
   /* L/U control */
   $('l-ctrl').style.display = isCorner ? 'block':'none';
   $('gap-ctl').style.display = S.type==='U' ? 'block':'none';
-  $('plat-shape-ctl').style.display = S.type==='U' ? 'none':'block';
+  $('plat-shape-ctl').style.display = 'block';
   const kIn=document.querySelector('input[data-k="k"]');
   kIn.max = d.N-2;
   if(S.k>d.N-2) S.k=d.N-2;
@@ -1327,6 +1344,8 @@ function buildDrawingSVG(){
     inner += `<svg x="0" y="${y+38}" width="${W}" height="${h}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${svg.innerHTML}</svg>`;
     y += h + 64;
   });
+  y += 8;
+  inner += `<text x="${W/2}" y="${y+18}" font-family="sans-serif" font-size="13" fill="#8a8a8a" text-anchor="middle">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}" viewBox="0 0 ${W} ${y}" style="background:#fff">${inner}</svg>`;
 }
 $('btn-draw-svg').addEventListener('click', ()=>{

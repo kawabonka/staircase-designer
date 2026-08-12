@@ -30,7 +30,7 @@ body{
   background:var(--bg); color:var(--fg);
   font-family:var(--font-body); font-size:14px; line-height:1.5;
   display:grid; grid-template-columns:300px 1fr;
-  grid-template-rows:auto 1fr;
+  grid-template-rows:auto 1fr auto;
   height:100vh; height:100dvh;
   overflow:hidden;
 }
@@ -61,6 +61,7 @@ header .pipe{ width:1px; height:22px; background:var(--border) }
 .head-exports{ display:flex; gap:6px }
 .hbtn{ font-size:12px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-family:var(--font-body); white-space:nowrap }
 .hbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--surface) }
+footer{ grid-column:1/-1; padding:5px 16px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); background:var(--surface); text-align:center; letter-spacing:.3px }
 
 /* ── Sidebar ────────────────────────────── */
 aside{
@@ -331,6 +332,8 @@ table.sch tr.last td{ border-bottom:none }
     <div class="panel-body"><div class="sch-wrap" id="schedule"></div></div>
   </section>
 </main>
+
+<footer data-od-id="app-footer">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</footer>
 
 <script>
 'use strict';
@@ -1341,6 +1344,8 @@ function buildDrawingSVG(){
     inner += `<svg x="0" y="${y+38}" width="${W}" height="${h}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${svg.innerHTML}</svg>`;
     y += h + 64;
   });
+  y += 8;
+  inner += `<text x="${W/2}" y="${y+18}" font-family="sans-serif" font-size="13" fill="#8a8a8a" text-anchor="middle">By Kawabonka 2026, Greetings to Abby/Kaka/Wendy^_^</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}" viewBox="0 0 ${W} ${y}" style="background:#fff">${inner}</svg>`;
 }
 $('btn-draw-svg').addEventListener('click', ()=>{
